@@ -1,0 +1,3799 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StudyFlow • Collaborative Study App</title>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        }
+
+        :root {
+            --primary: #007AFF;
+            --secondary: #5856D6;
+            --background: rgba(242, 242, 247, 0.9);
+            --card-bg: rgba(255, 255, 255, 0.7);
+            --text: #1C1C1E;
+            --text-secondary: #8E8E93;
+            --border: rgba(60, 60, 67, 0.1);
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            --blur: blur(20px);
+            --success: #34C759;
+            --warning: #FF9500;
+            --danger: #FF3B30;
+            --glass-border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        [data-theme="dark"] {
+            --primary: #0A84FF;
+            --secondary: #5E5CE6;
+            --background: rgba(28, 28, 30, 0.9);
+            --card-bg: rgba(44, 44, 46, 0.7);
+            --text: #FFFFFF;
+            --text-secondary: #8E8E93;
+            --border: rgba(84, 84, 88, 0.6);
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            --glass-border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+
+        [data-theme="dark"] body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            background: var(--background);
+            backdrop-filter: var(--blur);
+            -webkit-backdrop-filter: var(--blur);
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            border: var(--glass-border);
+            display: flex;
+            flex-direction: column;
+            height: 90vh;
+        }
+
+        header {
+            padding: 24px;
+            border-bottom: 1px solid var(--border);
+            background: var(--card-bg);
+            position: relative;
+            backdrop-filter: var(--blur);
+            -webkit-backdrop-filter: var(--blur);
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 16px;
+        }
+
+        .content {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 300px;
+            border-right: 1px solid var(--border);
+            background: var(--card-bg);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            backdrop-filter: var(--blur);
+            -webkit-backdrop-filter: var(--blur);
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .page-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0;
+        }
+
+        .section {
+            padding: 20px;
+        }
+
+        .section-title {
+            font-size: 22px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .section-title i {
+            margin-right: 12px;
+            color: var(--primary);
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            border: var(--glass-border);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            backdrop-filter: var(--blur);
+            -webkit-backdrop-filter: var(--blur);
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+        }
+
+        .input-group {
+            margin-bottom: 16px;
+        }
+
+        .input-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            border: var(--glass-border);
+            background: var(--card-bg);
+            font-size: 16px;
+            transition: all 0.2s ease;
+            color: var(--text);
+            backdrop-filter: var(--blur);
+            -webkit-backdrop-filter: var(--blur);
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.2);
+        }
+
+        .button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 12px 20px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: var(--blur);
+            -webkit-backdrop-filter: var(--blur);
+        }
+
+        .button:hover {
+            background: #0056CC;
+            transform: translateY(-2px);
+        }
+
+        .button i {
+            margin-right: 8px;
+        }
+
+        .button-secondary {
+            background: transparent;
+            color: var(--primary);
+            border: 1px solid var(--primary);
+        }
+
+        .button-secondary:hover {
+            background: rgba(0, 122, 255, 0.1);
+        }
+
+        .button-success {
+            background: var(--success);
+        }
+
+        .button-success:hover {
+            background: #2DA44E;
+        }
+
+        .button-danger {
+            background: var(--danger);
+        }
+
+        .button-danger:hover {
+            background: #D70015;
+        }
+
+        .button-warning {
+            background: var(--warning);
+        }
+
+        .button-warning:hover {
+            background: #E68500;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 12px;
+        }
+
+        .button-group .button {
+            flex: 1;
+        }
+
+        .groups-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0 20px 20px;
+        }
+
+        .group-item {
+            display: flex;
+            align-items: center;
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            background: var(--card-bg);
+            border: var(--glass-border);
+            transition: all 0.2s ease;
+            cursor: pointer;
+            backdrop-filter: var(--blur);
+            -webkit-backdrop-filter: var(--blur);
+        }
+
+        .group-item.active {
+            border-color: var(--primary);
+            background: rgba(0, 122, 255, 0.1);
+        }
+
+        .group-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .group-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+            margin-right: 16px;
+        }
+
+        .group-details {
+            flex: 1;
+        }
+
+        .group-name {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .group-code {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .group-status {
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 8px;
+            background: var(--success);
+            color: white;
+        }
+
+        .group-status.break {
+            background: var(--warning);
+        }
+
+        .chat-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+            background: var(--card-bg);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            backdrop-filter: var(--blur);
+            -webkit-backdrop-filter: var(--blur);
+        }
+
+        .chat-title {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .chat-info {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .message {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            position: relative;
+            backdrop-filter: var(--blur);
+            -webkit-backdrop-filter: var(--blur);
+        }
+
+        .message.own {
+            align-self: flex-end;
+            background: var(--primary);
+            color: white;
+            border-bottom-right-radius: 6px;
+        }
+
+        .message.other {
+            align-self: flex-start;
+            background: var(--card-bg);
+            border: var(--glass-border);
+            border-bottom-left-radius: 6px;
+        }
+
+        .message-sender {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+        .message.own .message-sender {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .message.other .message-sender {
+            color: var(--primary);
+        }
+
+        .message-time {
+            font-size: 12px;
+            text-align: right;
+            margin-top: 4px;
+            opacity: 0.7;
+        }
+
+        .chat-input {
+            padding: 20px;
+            border-top: 1px solid var(--border);
+            background: var(--card-bg);
+            display: flex;
+            gap: 12px;
+            backdrop-filter: var(--blur);
+            -webkit-backdrop-filter: var(--blur);
+        }
+
+        .chat-input-field {
+            flex: 1;
+            padding: 12px 16px;
+            border-radius: 20px;
+            border: var(--glass-border);
+            background: var(--card-bg);
+            font-size: 16px;
+            color: var(--text);
+            backdrop-filter: var(--blur);
+            -webkit-backdrop-filter: var(--blur);
+        }
+
+        .chat-input-field:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .send-button {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            backdrop-filter: var(--blur);
+            -webkit-backdrop-filter: var(--blur);
+        }
+
+        .send-button:hover {
+            background: #0056CC;
+            transform: scale(1.05);
+        }
+
+        .members-sidebar {
+            width: 280px;
+            border-left: 1px solid var(--border);
+            background: var(--card-bg);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            backdrop-filter: var(--blur);
+            -webkit-backdrop-filter: var(--blur);
+        }
+
+        .members-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+            font-weight: 600;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .members-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0 20px 20px;
+        }
+
+        .member-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .member-item:last-child {
+            border-bottom: none;
+        }
+
+        .member-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            margin-right: 12px;
+            flex-shrink: 0;
+        }
+
+        .member-details {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .member-name {
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 4px;
+        }
+
+        .member-status {
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .member-status.studying {
+            color: var(--success);
+        }
+
+        .member-status.break {
+            color: var(--warning);
+        }
+
+        .member-status.online {
+            color: var(--text-secondary);
+        }
+
+        .member-status.offline {
+            color: var(--text-secondary);
+            opacity: 0.6;
+        }
+
+        .timer {
+            font-family: 'Courier New', monospace;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-secondary);
+        }
+
+        .empty-state i {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .nav-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .nav-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .nav-items {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px 0;
+            overflow-y: auto;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            margin: 4px 0;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .nav-item.active {
+            background: rgba(0, 122, 255, 0.1);
+            color: var(--primary);
+        }
+
+        .nav-item:hover:not(.active) {
+            background: rgba(0, 0, 0, 0.05);
+        }
+
+        .nav-item i {
+            width: 24px;
+            margin-right: 12px;
+            font-size: 18px;
+        }
+
+        .nav-footer {
+            padding: 20px;
+            border-top: 1px solid var(--border);
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            margin-right: 12px;
+        }
+
+        .user-details h3 {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .user-details p {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        /* Activity Feed Styles */
+        .activity-feed {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .activity-item {
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+        
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+        
+        .activity-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: var(--primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        
+        .activity-content {
+            flex: 1;
+        }
+        
+        .activity-text {
+            margin-bottom: 4px;
+        }
+        
+        .activity-time {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        
+        .live-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+            margin-right: 6px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        /* Timer Styles - Stopwatch Style */
+        .timer-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+        }
+
+        .timer-display {
+            font-size: 5rem;
+            font-weight: bold;
+            text-align: center;
+            margin: 2rem 0;
+            font-family: 'Courier New', monospace;
+            color: var(--primary);
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 20px;
+            border: var(--glass-border);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: var(--blur);
+            -webkit-backdrop-filter: var(--blur);
+        }
+
+        .timer-controls {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .timer-btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 16px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            backdrop-filter: var(--blur);
+            -webkit-backdrop-filter: var(--blur);
+        }
+
+        .timer-btn.start {
+            background: var(--success);
+            color: white;
+        }
+
+        .timer-btn.stop {
+            background: var(--danger);
+            color: white;
+        }
+
+        .timer-btn.reset {
+            background: var(--warning);
+            color: white;
+        }
+
+        .timer-btn.end {
+            background: var(--primary);
+            color: white;
+        }
+
+        .timer-btn.focus {
+            background: var(--secondary);
+            color: white;
+        }
+
+        .timer-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .subject-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 12px;
+            margin-bottom: 2rem;
+        }
+
+        .subject-card {
+            padding: 16px;
+            border-radius: 12px;
+            background: var(--card-bg);
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            backdrop-filter: var(--blur);
+            -webkit-backdrop-filter: var(--blur);
+        }
+
+        .subject-card.active {
+            border-color: var(--primary);
+            background: rgba(0, 122, 255, 0.1);
+        }
+
+        .subject-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .subject-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 18px;
+        }
+
+        /* Stats Styles */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 16px;
+            text-align: center;
+            border: var(--glass-border);
+            backdrop-filter: var(--blur);
+            -webkit-backdrop-filter: var(--blur);
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: var(--primary);
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--border);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 1rem 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--primary);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        /* Focus Mode Overlay */
+        .focus-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            color: white;
+        }
+
+        .focus-timer {
+            font-size: 6rem;
+            font-weight: bold;
+            margin-bottom: 2rem;
+            font-family: 'Courier New', monospace;
+        }
+
+        .focus-subject {
+            font-size: 1.5rem;
+            margin-bottom: 2rem;
+            opacity: 0.8;
+        }
+
+        /* Theme Toggle */
+        .theme-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: var(--card-bg);
+            border: var(--glass-border);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 100;
+            backdrop-filter: var(--blur);
+            -webkit-backdrop-filter: var(--blur);
+        }
+
+        .theme-toggle:hover {
+            transform: rotate(30deg);
+        }
+
+        /* Manual Session Styles */
+        .manual-session-form {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        /* User Profile Styles */
+        .profile-header {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+
+        .profile-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 32px;
+            font-weight: bold;
+        }
+
+        .profile-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .profile-stat {
+            text-align: center;
+            padding: 16px;
+            background: var(--card-bg);
+            border-radius: 12px;
+            border: var(--glass-border);
+            backdrop-filter: var(--blur);
+            -webkit-backdrop-filter: var(--blur);
+        }
+
+        .profile-stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--primary);
+            margin-bottom: 4px;
+        }
+
+        .profile-stat-label {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        /* Public Groups Styles */
+        .public-groups-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .public-group-card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 20px;
+            border: var(--glass-border);
+            transition: all 0.2s ease;
+            backdrop-filter: var(--blur);
+            -webkit-backdrop-filter: var(--blur);
+        }
+
+        .public-group-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+        }
+
+        .public-group-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .public-group-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            margin-right: 12px;
+        }
+
+        .public-group-info {
+            flex: 1;
+        }
+
+        .public-group-name {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .public-group-members {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        /* Member Status Indicator */
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            flex-shrink: 0;
+        }
+
+        .status-studying {
+            background-color: var(--success);
+        }
+
+        .status-break {
+            background-color: var(--warning);
+        }
+
+        .status-online {
+            background-color: var(--primary);
+        }
+
+        .status-offline {
+            background-color: var(--text-secondary);
+            opacity: 0.5;
+        }
+
+        /* Switch Toggle */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--border);
+            transition: .4s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--primary);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+
+        /* Calendar Styles */
+        .calendar {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 16px;
+        }
+
+        .calendar th, .calendar td {
+            padding: 12px;
+            text-align: center;
+            border: 1px solid var(--border);
+        }
+
+        .calendar th {
+            background: var(--card-bg);
+            font-weight: 600;
+        }
+
+        .calendar-day {
+            position: relative;
+            height: 60px;
+            cursor: pointer;
+        }
+
+        .calendar-day:hover {
+            background: rgba(0, 122, 255, 0.1);
+        }
+
+        .calendar-day.active {
+            background: rgba(0, 122, 255, 0.2);
+        }
+
+        .study-dot {
+            position: absolute;
+            bottom: 5px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--primary);
+        }
+
+        .study-dot.low {
+            background: var(--warning);
+        }
+
+        .study-dot.medium {
+            background: var(--primary);
+        }
+
+        .study-dot.high {
+            background: var(--success);
+        }
+
+        /* Group Stats */
+        .group-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+            padding: 20px;
+        }
+
+        .group-stat {
+            background: var(--card-bg);
+            padding: 16px;
+            border-radius: 12px;
+            text-align: center;
+            border: var(--glass-border);
+        }
+
+        .group-stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary);
+            margin-bottom: 4px;
+        }
+
+        .group-stat-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        /* Join Group Section */
+        .join-group-section {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: var(--glass-border);
+        }
+
+        .join-group-form {
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+        }
+
+        /* Study Session Info */
+        .study-session-info {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        .study-time {
+            font-weight: 600;
+            color: var(--success);
+        }
+
+        /* Daily Progress Styles */
+        .daily-progress {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+            border: var(--glass-border);
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .progress-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .progress-date {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .progress-bar-container {
+            margin: 16px 0;
+        }
+
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .progress-percentage {
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        /* Subject Breakdown Styles */
+        .subject-breakdown-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .subject-breakdown-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .subject-breakdown-date {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .subject-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .subject-item:last-child {
+            border-bottom: none;
+        }
+
+        .subject-name {
+            font-weight: 500;
+        }
+
+        .subject-time {
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        /* Settings Styles */
+        .settings-section {
+            margin-bottom: 24px;
+        }
+
+        .settings-section-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .settings-section-title i {
+            color: var(--primary);
+        }
+
+        .goal-input-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .goal-input {
+            width: 100px;
+            padding: 12px 16px;
+            border-radius: 12px;
+            border: var(--glass-border);
+            background: var(--card-bg);
+            font-size: 16px;
+            color: var(--text);
+            backdrop-filter: var(--blur);
+            -webkit-backdrop-filter: var(--blur);
+        }
+
+        .goal-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.2);
+        }
+
+        .goal-unit {
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                border-right: none;
+                border-bottom: 1px solid var(--border);
+            }
+            
+            .members-sidebar {
+                width: 100%;
+                border-left: none;
+                border-top: 1px solid var(--border);
+            }
+            
+            .message {
+                max-width: 85%;
+            }
+            
+            .timer-display {
+                font-size: 3rem;
+            }
+            
+            .focus-timer {
+                font-size: 4rem;
+            }
+            
+            .theme-toggle {
+                top: 10px;
+                right: 10px;
+                width: 40px;
+                height: 40px;
+            }
+            
+            .timer-controls {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .timer-btn {
+                width: 200px;
+                justify-content: center;
+            }
+            
+            .manual-session-form {
+                grid-template-columns: 1fr;
+            }
+            
+            .public-groups-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .profile-stats {
+                grid-template-columns: 1fr;
+            }
+            
+            .join-group-form {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .goal-input-container {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+            
+            .goal-input {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body data-theme="light">
+    <!-- Theme Toggle -->
+    <div class="theme-toggle" onclick="toggleTheme()">
+        <i class="fas fa-moon" id="theme-icon"></i>
+    </div>
+
+    <!-- Login Modal -->
+    <div id="login-modal" class="container" style="max-width: 400px; height: auto;">
+        <header>
+            <h1>StudyFlow</h1>
+            <p class="subtitle">Welcome back! Sign in to continue</p>
+        </header>
+        
+        <div class="content" style="overflow: visible;">
+            <div class="section" style="flex: 1;">
+                <div class="card">
+                    <div class="input-group">
+                        <label class="input-label">Email</label>
+                        <input type="email" id="login-email" class="input-field" placeholder="your@email.com">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label class="input-label">Password</label>
+                        <input type="password" id="login-password" class="input-field" placeholder="Enter your password">
+                    </div>
+                    
+                    <button class="button" style="width: 100%;" onclick="login()">
+                        <i class="fas fa-sign-in-alt"></i> Sign In
+                    </button>
+                    
+                    <div style="text-align: center; margin-top: 16px;">
+                        <span style="color: var(--text-secondary);">Don't have an account? </span>
+                        <a href="#" onclick="showSignup()" style="color: var(--primary); text-decoration: none;">Sign up</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Signup Modal -->
+    <div id="signup-modal" class="container" style="max-width: 400px; height: auto; display: none;">
+        <header>
+            <h1>StudyFlow</h1>
+            <p class="subtitle">Create your account</p>
+        </header>
+        
+        <div class="content" style="overflow: visible;">
+            <div class="section" style="flex: 1;">
+                <div class="card">
+                    <div class="input-group">
+                        <label class="input-label">Username</label>
+                        <input type="text" id="signup-username" class="input-field" placeholder="Choose a username">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label class="input-label">Email</label>
+                        <input type="email" id="signup-email" class="input-field" placeholder="your@email.com">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label class="input-label">Password</label>
+                        <input type="password" id="signup-password" class="input-field" placeholder="Create a password">
+                    </div>
+                    
+                    <button class="button" style="width: 100%;" onclick="signup()">
+                        <i class="fas fa-user-plus"></i> Create Account
+                    </button>
+                    
+                    <div style="text-align: center; margin-top: 16px;">
+                        <span style="color: var(--text-secondary);">Already have an account? </span>
+                        <a href="#" onclick="showLogin()" style="color: var(--primary); text-decoration: none;">Sign in</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="main-app" class="container" style="display: none;">
+        <header>
+            <h1 id="page-title">StudyFlow</h1>
+            <p class="subtitle" id="page-subtitle">Collaborative Study App</p>
+        </header>
+        
+        <div class="content">
+            <!-- Sidebar -->
+            <div class="sidebar">
+                <div class="nav-container">
+                    <div class="nav-header">
+                        <div class="user-info">
+                            <div class="user-avatar" id="user-avatar">U</div>
+                            <div class="user-details">
+                                <h3 id="username">User</h3>
+                                <p id="user-status">Online</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="nav-items">
+                        <div class="nav-item active" onclick="navigateTo('dashboard')">
+                            <i class="fas fa-home"></i> Dashboard
+                        </div>
+                        <div class="nav-item" onclick="navigateTo('study')">
+                            <i class="fas fa-clock"></i> Study Timer
+                        </div>
+                        <div class="nav-item" onclick="navigateTo('groups')">
+                            <i class="fas fa-users"></i> Study Groups
+                        </div>
+                        <div class="nav-item" onclick="navigateTo('statistics')">
+                            <i class="fas fa-chart-bar"></i> Statistics
+                        </div>
+                        <div class="nav-item" onclick="navigateTo('profile')">
+                            <i class="fas fa-user"></i> Profile
+                        </div>
+                        <div class="nav-item" onclick="navigateTo('settings')">
+                            <i class="fas fa-cog"></i> Settings
+                        </div>
+                    </div>
+                    
+                    <div class="nav-footer">
+                        <button class="button button-secondary" style="width: 100%;" onclick="logout()">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Main Content -->
+            <div class="main-content">
+                <!-- Dashboard Page -->
+                <div id="dashboard-page" class="page-content">
+                    <div class="section">
+                        <div class="section-title">
+                            <span><i class="fas fa-home"></i> Dashboard</span>
+                        </div>
+                        
+                        <!-- Daily Progress Section -->
+                        <div class="daily-progress">
+                            <div class="progress-header">
+                                <div class="progress-title">Today's Progress</div>
+                                <div class="progress-date" id="today-date">Today</div>
+                            </div>
+                            <div class="progress-bar-container">
+                                <div class="progress-bar">
+                                    <div class="progress-fill" id="daily-progress-bar" style="width: 0%;"></div>
+                                </div>
+                            </div>
+                            <div class="progress-info">
+                                <span id="daily-progress-text">0m / 120m goal</span>
+                                <span class="progress-percentage" id="daily-progress-percentage">0%</span>
+                            </div>
+                        </div>
+                        
+                        <div class="card">
+                            <h3 style="margin-bottom: 16px;">Welcome back, <span id="dashboard-username">User</span>!</h3>
+                            <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                                Ready for another productive study session? Here's your current progress:
+                            </p>
+                            
+                            <div class="stats-grid">
+                                <div class="stat-card">
+                                    <div class="stat-value" id="total-study-time">0h 0m</div>
+                                    <div class="stat-label">Total Study Time</div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-value" id="daily-study-time">0m</div>
+                                    <div class="stat-label">Today's Study</div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-value" id="sessions-completed">0</div>
+                                    <div class="stat-label">Sessions Completed</div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-value" id="current-streak">0</div>
+                                    <div class="stat-label">Current Streak</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card">
+                            <h3 style="margin-bottom: 16px;">Quick Actions</h3>
+                            <div class="button-group">
+                                <button class="button" onclick="navigateTo('study')">
+                                    <i class="fas fa-play"></i> Start Studying
+                                </button>
+                                <button class="button button-secondary" onclick="navigateTo('groups')">
+                                    <i class="fas fa-users"></i> Join Group
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Enhanced Activity Feed -->
+                        <div class="card">
+                            <h3 style="margin-bottom: 16px;">
+                                <span class="live-indicator"></span>
+                                Live Activity Feed
+                            </h3>
+                            <div class="activity-feed" id="activity-feed">
+                                <div class="empty-state">
+                                    <i class="fas fa-bolt"></i>
+                                    <p>No recent activity</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Study Timer Page -->
+                <div id="study-page" class="page-content" style="display: none;">
+                    <div class="section">
+                        <div class="section-title">
+                            <span><i class="fas fa-clock"></i> Study Timer</span>
+                        </div>
+                        
+                        <div class="card">
+                            <h3 style="margin-bottom: 16px;">Select Subject</h3>
+                            <div class="subject-selector" id="subject-selector">
+                                <div class="subject-card active" data-subject="physics">
+                                    <div class="subject-icon">
+                                        <i class="fas fa-atom"></i>
+                                    </div>
+                                    <span>Physics</span>
+                                </div>
+                                <div class="subject-card" data-subject="chemistry">
+                                    <div class="subject-icon">
+                                        <i class="fas fa-flask"></i>
+                                    </div>
+                                    <span>Chemistry</span>
+                                </div>
+                                <div class="subject-card" data-subject="biology">
+                                    <div class="subject-icon">
+                                        <i class="fas fa-dna"></i>
+                                    </div>
+                                    <span>Biology</span>
+                                </div>
+                                <div class="subject-card" data-subject="higher-math">
+                                    <div class="subject-icon">
+                                        <i class="fas fa-square-root-alt"></i>
+                                    </div>
+                                    <span>Higher Math</span>
+                                </div>
+                                <div class="subject-card" data-subject="math">
+                                    <div class="subject-icon">
+                                        <i class="fas fa-calculator"></i>
+                                    </div>
+                                    <span>Math</span>
+                                </div>
+                                <div class="subject-card" data-subject="bgs">
+                                    <div class="subject-icon">
+                                        <i class="fas fa-globe-americas"></i>
+                                    </div>
+                                    <span>BGS</span>
+                                </div>
+                                <div class="subject-card" data-subject="custom" id="custom-subject-card">
+                                    <div class="subject-icon">
+                                        <i class="fas fa-plus"></i>
+                                    </div>
+                                    <span>Add Custom</span>
+                                </div>
+                            </div>
+                            
+                            <div id="custom-subject-input" style="display: none;">
+                                <div class="input-group">
+                                    <label class="input-label">Custom Subject Name</label>
+                                    <input type="text" id="custom-subject-name" class="input-field" placeholder="Enter subject name">
+                                </div>
+                                <button class="button" onclick="addCustomSubject()">
+                                    <i class="fas fa-check"></i> Add Subject
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="timer-container">
+                            <div class="timer-display" id="timer-display">00:00:00</div>
+                            
+                            <div class="timer-controls">
+                                <button class="timer-btn start" id="start-timer" onclick="startTimer()">
+                                    <i class="fas fa-play"></i> Start
+                                </button>
+                                <button class="timer-btn stop" id="stop-timer" onclick="stopTimer()" disabled>
+                                    <i class="fas fa-pause"></i> Pause
+                                </button>
+                                <button class="timer-btn focus" id="focus-timer-btn" onclick="enterFocusMode()">
+                                    <i class="fas fa-expand"></i> Focus Mode
+                                </button>
+                                <button class="timer-btn reset" id="reset-timer" onclick="resetTimer()">
+                                    <i class="fas fa-redo"></i> Reset
+                                </button>
+                                <button class="timer-btn end" id="end-session" onclick="endSession()">
+                                    <i class="fas fa-flag-checkered"></i> End Session
+                                </button>
+                            </div>
+                            
+                            <div class="card" style="max-width: 500px; width: 100%;">
+                                <h3 style="margin-bottom: 16px;">Manual Session Entry</h3>
+                                <div class="manual-session-form">
+                                    <div class="input-group">
+                                        <label class="input-label">Subject</label>
+                                        <select id="manual-subject" class="input-field">
+                                            <option value="physics">Physics</option>
+                                            <option value="chemistry">Chemistry</option>
+                                            <option value="biology">Biology</option>
+                                            <option value="higher-math">Higher Math</option>
+                                            <option value="math">Math</option>
+                                            <option value="bgs">BGS</option>
+                                        </select>
+                                    </div>
+                                    <div class="input-group">
+                                        <label class="input-label">Duration (minutes)</label>
+                                        <input type="number" id="manual-duration" class="input-field" placeholder="e.g., 60">
+                                    </div>
+                                    <div class="input-group">
+                                        <label class="input-label">Date</label>
+                                        <input type="date" id="manual-date" class="input-field">
+                                    </div>
+                                    <div class="input-group">
+                                        <label class="input-label">&nbsp;</label>
+                                        <button class="button" onclick="addManualSession()">
+                                            <i class="fas fa-plus"></i> Add Session
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Groups Page -->
+                <div id="groups-page" class="page-content" style="display: none;">
+                    <div class="section">
+                        <div class="section-title">
+                            <span><i class="fas fa-users"></i> Study Groups</span>
+                            <button class="button" onclick="showCreateGroupModal()">
+                                <i class="fas fa-plus"></i> Create Group
+                            </button>
+                        </div>
+                        
+                        <!-- Join Group with Code Section -->
+                        <div class="join-group-section">
+                            <h3 style="margin-bottom: 16px;">Join Group with Code</h3>
+                            <div class="join-group-form">
+                                <div class="input-group" style="flex: 1; margin-bottom: 0;">
+                                    <input type="text" id="join-group-code" class="input-field" placeholder="Enter group code">
+                                </div>
+                                <button class="button" onclick="joinGroupWithCode()">
+                                    <i class="fas fa-sign-in-alt"></i> Join Group
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="card">
+                            <h3 style="margin-bottom: 16px;">Your Groups</h3>
+                            <div class="groups-list" id="user-groups-list">
+                                <div class="empty-state">
+                                    <i class="fas fa-users"></i>
+                                    <p>You haven't joined any groups yet</p>
+                                    <button class="button" style="margin-top: 16px;" onclick="showPublicGroups()">
+                                        <i class="fas fa-search"></i> Browse Public Groups
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card" id="public-groups-card" style="display: none;">
+                            <h3 style="margin-bottom: 16px;">Public Groups</h3>
+                            <div class="public-groups-grid" id="public-groups-list">
+                                <!-- Public groups will be populated here -->
+                            </div>
+                            <button class="button button-secondary" onclick="hidePublicGroups()">
+                                <i class="fas fa-arrow-left"></i> Back to Your Groups
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Group Chat Page -->
+                <div id="group-chat-page" class="page-content" style="display: none;">
+                    <div class="chat-header">
+                        <div>
+                            <div class="chat-title" id="chat-group-name">Group Name</div>
+                            <div class="chat-info" id="chat-group-info">Group info</div>
+                        </div>
+                        <button class="button button-secondary" onclick="showGroups()">
+                            <i class="fas fa-arrow-left"></i> Back to Groups
+                        </button>
+                    </div>
+                    
+                    <div class="chat-container">
+                        <div class="chat-messages" id="chat-messages">
+                            <!-- Messages will be displayed here -->
+                        </div>
+                        
+                        <div class="chat-input">
+                            <input type="text" id="chat-input-field" class="chat-input-field" placeholder="Type a message...">
+                            <button class="send-button" onclick="sendMessage()">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Statistics Page -->
+                <div id="statistics-page" class="page-content" style="display: none;">
+                    <div class="section">
+                        <div class="section-title">
+                            <span><i class="fas fa-chart-bar"></i> Statistics</span>
+                        </div>
+                        
+                        <div class="card">
+                            <h3 style="margin-bottom: 16px;">Study Overview</h3>
+                            <div class="stats-grid">
+                                <div class="stat-card">
+                                    <div class="stat-value" id="stats-total-time">0h 0m</div>
+                                    <div class="stat-label">Total Study Time</div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-value" id="stats-daily-time">0m</div>
+                                    <div class="stat-label">Today's Study</div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-value" id="stats-sessions">0</div>
+                                    <div class="stat-label">Sessions</div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-value" id="stats-avg-session">0m</div>
+                                    <div class="stat-label">Avg. Session</div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-value" id="stats-streak">0</div>
+                                    <div class="stat-label">Day Streak</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card">
+                            <div class="subject-breakdown-header">
+                                <div class="subject-breakdown-title">Today's Subject Breakdown</div>
+                                <div class="subject-breakdown-date" id="subject-breakdown-date">Today</div>
+                            </div>
+                            <div id="subject-breakdown">
+                                <div class="empty-state">
+                                    <i class="fas fa-chart-pie"></i>
+                                    <p>No study data available for today</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card">
+                            <h3 style="margin-bottom: 16px;">Study Calendar</h3>
+                            <div id="study-calendar">
+                                <!-- Calendar will be generated here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Profile Page -->
+                <div id="profile-page" class="page-content" style="display: none;">
+                    <div class="section">
+                        <div class="section-title">
+                            <span><i class="fas fa-user"></i> Profile</span>
+                        </div>
+                        
+                        <div class="card">
+                            <div class="profile-header">
+                                <div class="profile-avatar" id="profile-avatar">U</div>
+                                <div>
+                                    <h2 id="profile-username">User</h2>
+                                    <p style="color: var(--text-secondary);">Member since <span id="member-since">2023</span></p>
+                                </div>
+                            </div>
+                            
+                            <div class="profile-stats">
+                                <div class="profile-stat">
+                                    <div class="profile-stat-value" id="profile-total-time">0h 0m</div>
+                                    <div class="profile-stat-label">Total Study Time</div>
+                                </div>
+                                <div class="profile-stat">
+                                    <div class="profile-stat-value" id="profile-daily-time">0m</div>
+                                    <div class="profile-stat-label">Today's Study</div>
+                                </div>
+                                <div class="profile-stat">
+                                    <div class="profile-stat-value" id="profile-sessions">0</div>
+                                    <div class="profile-stat-label">Sessions</div>
+                                </div>
+                                <div class="profile-stat">
+                                    <div class="profile-stat-value" id="profile-streak">0</div>
+                                    <div class="profile-stat-label">Day Streak</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card">
+                            <h3 style="margin-bottom: 16px;">Account Settings</h3>
+                            <div class="input-group">
+                                <label class="input-label">Username</label>
+                                <input type="text" id="profile-username-input" class="input-field" placeholder="Username">
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label">Email</label>
+                                <input type="email" id="profile-email-input" class="input-field" placeholder="Email">
+                            </div>
+                            <button class="button" onclick="updateProfile()">
+                                <i class="fas fa-save"></i> Save Changes
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Settings Page -->
+                <div id="settings-page" class="page-content" style="display: none;">
+                    <div class="section">
+                        <div class="section-title">
+                            <span><i class="fas fa-cog"></i> Settings</span>
+                        </div>
+                        
+                        <div class="card">
+                            <div class="settings-section">
+                                <div class="settings-section-title">
+                                    <i class="fas fa-bullseye"></i>
+                                    <span>Study Goals</span>
+                                </div>
+                                <div class="input-group">
+                                    <label class="input-label">Daily Study Goal</label>
+                                    <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 12px;">
+                                        Set your daily study target to track your progress
+                                    </p>
+                                    <div class="goal-input-container">
+                                        <input type="number" id="daily-goal-input" class="goal-input" min="15" max="480" value="120">
+                                        <span class="goal-unit">minutes</span>
+                                    </div>
+                                    <p style="color: var(--text-secondary); font-size: 12px; margin-top: 8px;">
+                                        Recommended: 60-180 minutes per day
+                                    </p>
+                                </div>
+                                <button class="button" onclick="updateDailyGoal()">
+                                    <i class="fas fa-save"></i> Save Goal
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="card">
+                            <div class="settings-section">
+                                <div class="settings-section-title">
+                                    <i class="fas fa-palette"></i>
+                                    <span>Appearance</span>
+                                </div>
+                                <div class="input-group">
+                                    <label class="input-label">Theme</label>
+                                    <div style="display: flex; align-items: center; gap: 12px;">
+                                        <label class="switch">
+                                            <input type="checkbox" id="theme-switch" onchange="toggleThemeFromSwitch()">
+                                            <span class="slider"></span>
+                                        </label>
+                                        <span id="theme-label">Light Mode</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card">
+                            <div class="settings-section">
+                                <div class="settings-section-title">
+                                    <i class="fas fa-bell"></i>
+                                    <span>Notifications</span>
+                                </div>
+                                <div class="input-group">
+                                    <label class="input-label">Study Reminders</label>
+                                    <div style="display: flex; align-items: center; gap: 12px;">
+                                        <label class="switch">
+                                            <input type="checkbox" id="reminders-switch" checked>
+                                            <span class="slider"></span>
+                                        </label>
+                                        <span>Enable study reminders</span>
+                                    </div>
+                                    <p style="color: var(--text-secondary); font-size: 12px; margin-top: 8px;">
+                                        Get reminders to start your study sessions
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Members Sidebar (Only visible in Groups page) -->
+            <div class="members-sidebar" id="members-sidebar" style="display: none;">
+                <div class="members-header">
+                    <i class="fas fa-users"></i> Group Members
+                </div>
+                <div class="members-list" id="members-list">
+                    <div class="empty-state">
+                        <i class="fas fa-user-friends"></i>
+                        <p>Select a group to view members</p>
+                    </div>
+                </div>
+                <div class="group-stats" id="group-stats" style="display: none;">
+                    <div class="group-stat">
+                        <div class="group-stat-value" id="group-total-time">0h</div>
+                        <div class="group-stat-label">Total Study</div>
+                    </div>
+                    <div class="group-stat">
+                        <div class="group-stat-value" id="group-active">0</div>
+                        <div class="group-stat-label">Active Now</div>
+                    </div>
+                    <div class="group-stat">
+                        <div class="group-stat-value" id="group-sessions">0</div>
+                        <div class="group-stat-label">Sessions</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Group Modal -->
+    <div id="create-group-modal" class="container" style="max-width: 500px; height: auto; display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 1000;">
+        <header>
+            <h1>Create Study Group</h1>
+            <p class="subtitle">Set up a new study group</p>
+        </header>
+        
+        <div class="content" style="overflow: visible;">
+            <div class="section" style="flex: 1;">
+                <div class="card">
+                    <div class="input-group">
+                        <label class="input-label">Group Name</label>
+                        <input type="text" id="group-name" class="input-field" placeholder="Enter group name">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label class="input-label">Description</label>
+                        <textarea id="group-description" class="input-field" placeholder="Enter group description" rows="3"></textarea>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label class="input-label">Visibility</label>
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <label class="switch">
+                                <input type="checkbox" id="group-public">
+                                <span class="slider"></span>
+                            </label>
+                            <span>Public Group</span>
+                        </div>
+                        <p style="font-size: 14px; color: var(--text-secondary); margin-top: 8px;">
+                            Public groups can be discovered by other users
+                        </p>
+                    </div>
+                    
+                    <div class="button-group">
+                        <button class="button button-secondary" onclick="hideCreateGroupModal()">
+                            <i class="fas fa-times"></i> Cancel
+                        </button>
+                        <button class="button" onclick="createGroup()">
+                            <i class="fas fa-check"></i> Create Group
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Focus Mode Overlay -->
+    <div class="focus-overlay" id="focus-overlay">
+        <div class="focus-timer" id="focus-timer">00:00:00</div>
+        <div class="focus-subject" id="focus-subject">Studying Physics</div>
+        <button class="button button-danger" onclick="exitFocusMode()">
+            <i class="fas fa-times"></i> Exit Focus Mode
+        </button>
+    </div>
+
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAvAMOafhe7YI-g_8OD3sz-oaMY3fOCrQU",
+            authDomain: "studyflow-app-bde31.firebaseapp.com",
+            projectId: "studyflow-app-bde31",
+            storageBucket: "studyflow-app-bde31.firebasestorage.app",
+            messagingSenderId: "808040777343",
+            appId: "1:808040777343:web:c1667297dcb13549d2214a"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // Global variables
+        let currentUser = null;
+        let timerInterval = null;
+        let timerSeconds = 0;
+        let isTimerRunning = false;
+        let currentSubject = "physics";
+        let customSubjects = JSON.parse(localStorage.getItem('customSubjects')) || [];
+        let currentGroup = null;
+        let userGroups = [];
+        let publicGroups = [];
+        let userGroupsListener = null;
+        let publicGroupsListener = null;
+        let currentGroupMembersListener = null;
+        let currentGroupMessagesListener = null;
+        let activityListener = null;
+        let userStatusListeners = [];
+        let userStudySessionsListener = null;
+        let dailyGoalMinutes = 120;
+
+        // DOM Elements
+        const loginModal = document.getElementById('login-modal');
+        const signupModal = document.getElementById('signup-modal');
+        const mainApp = document.getElementById('main-app');
+        const createGroupModal = document.getElementById('create-group-modal');
+        const focusOverlay = document.getElementById('focus-overlay');
+        const membersSidebar = document.getElementById('members-sidebar');
+
+        // Initialize the app
+        function initApp() {
+            console.log("Initializing StudyFlow app...");
+            
+            // Load custom subjects
+            loadCustomSubjects();
+            
+            // Check if user is logged in
+            auth.onAuthStateChanged(user => {
+                console.log("Auth state changed:", user);
+                if (user) {
+                    currentUser = user;
+                    showMainApp();
+                    loadUserData();
+                    setupActivityTracking();
+                    
+                    // Check and reset daily progress if needed
+                    checkAndResetDailyProgress();
+                    
+                    // Set up periodic daily reset check (every minute)
+                    setInterval(checkAndResetDailyProgress, 60000);
+                    
+                    // Set up online status tracking
+                    setupOnlineStatusTracking();
+                } else {
+                    showLogin();
+                }
+            });
+        }
+
+        // Set up online status tracking
+        function setupOnlineStatusTracking() {
+            if (!currentUser) return;
+            
+            // Update user status to online
+            db.collection('users').doc(currentUser.uid).update({
+                status: 'online',
+                lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
+                lastActivity: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            
+            // Update status when user goes offline
+            window.addEventListener('beforeunload', () => {
+                if (currentUser) {
+                    db.collection('users').doc(currentUser.uid).update({
+                        status: 'offline',
+                        lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                }
+            });
+        }
+
+        // Load custom subjects
+        function loadCustomSubjects() {
+            const subjectSelector = document.getElementById('subject-selector');
+            if (!subjectSelector) return;
+            
+            // Remove existing custom subjects (except the add button)
+            const existingCustomSubjects = document.querySelectorAll('.custom-subject');
+            existingCustomSubjects.forEach(subject => subject.remove());
+            
+            // Add custom subjects to the selector
+            customSubjects.forEach(subject => {
+                const subjectCard = document.createElement('div');
+                subjectCard.className = 'subject-card custom-subject';
+                subjectCard.dataset.subject = subject.toLowerCase().replace(' ', '-');
+                subjectCard.innerHTML = `
+                    <div class="subject-icon">
+                        <i class="fas fa-book"></i>
+                    </div>
+                    <span>${subject}</span>
+                `;
+                
+                // Insert before the add subject card
+                const customSubjectCard = document.getElementById('custom-subject-card');
+                subjectSelector.insertBefore(subjectCard, customSubjectCard);
+                
+                // Add click event
+                subjectCard.addEventListener('click', function() {
+                    document.querySelectorAll('.subject-card').forEach(c => c.classList.remove('active'));
+                    this.classList.add('active');
+                    currentSubject = this.dataset.subject;
+                    
+                    // Update focus subject
+                    document.getElementById('focus-subject').textContent = `Studying ${subject}`;
+                });
+            });
+        }
+
+        // Add a custom subject
+        function addCustomSubject() {
+            const subjectName = document.getElementById('custom-subject-name').value.trim();
+            if (!subjectName) {
+                alert('Please enter a subject name');
+                return;
+            }
+            
+            // Add to local array
+            customSubjects.push(subjectName);
+            
+            // Save to localStorage
+            localStorage.setItem('customSubjects', JSON.stringify(customSubjects));
+            
+            // Update UI
+            loadCustomSubjects();
+            
+            // Select the new subject
+            const newSubject = document.querySelector(`.custom-subject:last-child`);
+            if (newSubject) {
+                document.querySelectorAll('.subject-card').forEach(c => c.classList.remove('active'));
+                newSubject.classList.add('active');
+                currentSubject = newSubject.dataset.subject;
+                document.getElementById('focus-subject').textContent = `Studying ${subjectName}`;
+            }
+            
+            // Reset custom subject input
+            document.getElementById('custom-subject-name').value = '';
+            document.getElementById('custom-subject-input').style.display = 'none';
+        }
+
+        // Function to check and reset daily study time if needed
+        function checkAndResetDailyProgress() {
+            if (!currentUser) return;
+            
+            const today = new Date().toDateString();
+            
+            db.collection('users').doc(currentUser.uid).get()
+                .then(doc => {
+                    if (doc.exists) {
+                        const userData = doc.data();
+                        const lastResetDate = userData.lastResetDate;
+                        
+                        // If last reset was not today, reset daily study time
+                        if (lastResetDate !== today) {
+                            console.log("Resetting daily study time for new day");
+                            
+                            // Update streak based on whether user studied yesterday
+                            const yesterday = new Date();
+                            yesterday.setDate(yesterday.getDate() - 1);
+                            const yesterdayString = yesterday.toDateString();
+                            
+                            let newStreak = userData.currentStreak || 0;
+                            
+                            // If user studied yesterday, maintain streak, otherwise reset
+                            if (lastResetDate === yesterdayString && (userData.dailyStudyTime || 0) > 0) {
+                                newStreak += 1;
+                            } else if (lastResetDate !== yesterdayString) {
+                                newStreak = 0; // Reset streak if missed a day
+                            }
+                            
+                            // Reset daily study time and update last reset date
+                            return db.collection('users').doc(currentUser.uid).update({
+                                dailyStudyTime: 0,
+                                lastResetDate: today,
+                                currentStreak: newStreak
+                            }).then(() => {
+                                // Reload statistics to show updated data
+                                loadStudyStatistics();
+                            });
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking daily reset:', error);
+                });
+        }
+
+        // Show login modal
+        function showLogin() {
+            console.log("Showing login modal");
+            document.getElementById('login-modal').style.display = 'flex';
+            document.getElementById('signup-modal').style.display = 'none';
+            document.getElementById('main-app').style.display = 'none';
+        }
+
+        // Show signup modal
+        function showSignup() {
+            console.log("Showing signup modal");
+            document.getElementById('login-modal').style.display = 'none';
+            document.getElementById('signup-modal').style.display = 'flex';
+            document.getElementById('main-app').style.display = 'none';
+        }
+
+        // Show main app
+        function showMainApp() {
+            console.log("Showing main app");
+            document.getElementById('login-modal').style.display = 'none';
+            document.getElementById('signup-modal').style.display = 'none';
+            document.getElementById('main-app').style.display = 'flex';
+            navigateTo('dashboard');
+        }
+
+        // Login function
+        function login() {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+
+            console.log("Attempting login with:", email);
+
+            if (!email || !password) {
+                alert('Please enter both email and password');
+                return;
+            }
+
+            auth.signInWithEmailAndPassword(email, password)
+                .then(userCredential => {
+                    console.log("Login successful:", userCredential.user);
+                    currentUser = userCredential.user;
+                    showMainApp();
+                    loadUserData();
+                })
+                .catch(error => {
+                    console.error("Login error:", error);
+                    alert('Login failed: ' + error.message);
+                });
+        }
+
+        // Signup function
+        function signup() {
+            const username = document.getElementById('signup-username').value;
+            const email = document.getElementById('signup-email').value;
+            const password = document.getElementById('signup-password').value;
+
+            console.log("Attempting signup with:", email, username);
+
+            if (!username || !email || !password) {
+                alert('Please fill in all fields');
+                return;
+            }
+
+            if (password.length < 6) {
+                alert('Password must be at least 6 characters');
+                return;
+            }
+
+            auth.createUserWithEmailAndPassword(email, password)
+                .then(userCredential => {
+                    currentUser = userCredential.user;
+                    console.log("User created:", currentUser.uid);
+                    
+                    // Create user document in Firestore with study session tracking
+                    return db.collection('users').doc(currentUser.uid).set({
+                        username: username,
+                        email: email,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        totalStudyTime: 0,
+                        dailyStudyTime: 0,
+                        lastResetDate: new Date().toDateString(),
+                        dailyGoalMinutes: 120,
+                        sessionsCompleted: 0,
+                        currentStreak: 0,
+                        status: 'online',
+                        lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
+                        currentSubject: null,
+                        studySessions: [],
+                        groups: [],
+                        currentSessionStart: null,
+                        lastActivity: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                })
+                .then(() => {
+                    console.log("User document created");
+                    showMainApp();
+                    loadUserData();
+                })
+                .catch(error => {
+                    console.error("Signup error:", error);
+                    alert('Signup failed: ' + error.message);
+                });
+        }
+
+        // Logout function
+        function logout() {
+            console.log("Logging out");
+            if (isTimerRunning) {
+                stopTimer();
+            }
+            
+            // Update user status to offline
+            if (currentUser) {
+                db.collection('users').doc(currentUser.uid).update({
+                    status: 'offline',
+                    lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
+                    currentSubject: null,
+                    currentSessionStart: null
+                });
+            }
+            
+            // Remove all listeners
+            if (userGroupsListener) userGroupsListener();
+            if (publicGroupsListener) publicGroupsListener();
+            if (currentGroupMembersListener) currentGroupMembersListener();
+            if (currentGroupMessagesListener) currentGroupMessagesListener();
+            if (activityListener) activityListener();
+            
+            // Remove all user status listeners
+            userStatusListeners.forEach(unsubscribe => unsubscribe());
+            userStatusListeners = [];
+            
+            if (userStudySessionsListener) userStudySessionsListener();
+            
+            auth.signOut().then(() => {
+                currentUser = null;
+                showLogin();
+            });
+        }
+
+        // Load user data
+        function loadUserData() {
+            if (!currentUser) return;
+
+            console.log("Loading user data for:", currentUser.uid);
+
+            // Update user status to online
+            db.collection('users').doc(currentUser.uid).update({
+                status: 'online',
+                lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
+                lastActivity: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            // Load user document
+            db.collection('users').doc(currentUser.uid).get()
+                .then(doc => {
+                    if (doc.exists) {
+                        const userData = doc.data();
+                        console.log("User data loaded:", userData);
+                        
+                        // Set user info in UI
+                        document.getElementById('username').textContent = userData.username || 'User';
+                        document.getElementById('user-avatar').textContent = (userData.username || 'U').charAt(0).toUpperCase();
+                        document.getElementById('dashboard-username').textContent = userData.username || 'User';
+                        document.getElementById('profile-username').textContent = userData.username || 'User';
+                        document.getElementById('profile-avatar').textContent = (userData.username || 'U').charAt(0).toUpperCase();
+                        document.getElementById('profile-username-input').value = userData.username || '';
+                        document.getElementById('profile-email-input').value = userData.email || '';
+                        
+                        // Set member since date
+                        if (userData.createdAt) {
+                            const memberSince = userData.createdAt.toDate().getFullYear();
+                            document.getElementById('member-since').textContent = memberSince;
+                        }
+                        
+                        // Load daily goal
+                        if (userData.dailyGoalMinutes) {
+                            dailyGoalMinutes = userData.dailyGoalMinutes;
+                            document.getElementById('daily-goal-input').value = dailyGoalMinutes;
+                        }
+                        
+                        // Load user groups
+                        loadUserGroups();
+                        
+                        // Load study statistics
+                        loadStudyStatistics();
+                        
+                        // Load public groups
+                        loadPublicGroups();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading user data:', error);
+                });
+        }
+
+        // Setup activity tracking
+        function setupActivityTracking() {
+            console.log("Setting up activity tracking");
+            setupGlobalActivityFeed();
+        }
+
+        // Setup global activity feed
+        function setupGlobalActivityFeed() {
+            if (activityListener) {
+                activityListener();
+            }
+
+            activityListener = db.collection('activities')
+                .orderBy('timestamp', 'desc')
+                .limit(10)
+                .onSnapshot(snapshot => {
+                    const activityFeed = document.getElementById('activity-feed');
+                    activityFeed.innerHTML = '';
+                    
+                    if (snapshot.empty) {
+                        activityFeed.innerHTML = '<div class="empty-state"><i class="fas fa-bolt"></i><p>No recent activity</p></div>';
+                        return;
+                    }
+                    
+                    snapshot.forEach(doc => {
+                        const activity = doc.data();
+                        renderActivityItem(activity);
+                    });
+                }, error => {
+                    console.error('Error loading activities:', error);
+                });
+        }
+
+        // Render activity item
+        function renderActivityItem(activity) {
+            const activityFeed = document.getElementById('activity-feed');
+            
+            const activityItem = document.createElement('div');
+            activityItem.className = 'activity-item';
+            
+            let icon = 'fas fa-bolt';
+            let iconColor = 'var(--primary)';
+            
+            switch(activity.type) {
+                case 'session_started':
+                    icon = 'fas fa-play';
+                    iconColor = 'var(--success)';
+                    break;
+                case 'session_completed':
+                    icon = 'fas fa-flag-checkered';
+                    iconColor = 'var(--success)';
+                    break;
+                case 'joined_group':
+                    icon = 'fas fa-user-plus';
+                    iconColor = 'var(--primary)';
+                    break;
+                case 'created_group':
+                    icon = 'fas fa-users';
+                    iconColor = 'var(--secondary)';
+                    break;
+            }
+            
+            const timeAgo = getTimeAgo(activity.timestamp);
+            
+            activityItem.innerHTML = `
+                <div class="activity-icon" style="background: ${iconColor};">
+                    <i class="${icon}"></i>
+                </div>
+                <div class="activity-content">
+                    <div class="activity-text">
+                        <strong>${activity.userName}</strong> ${getActivityText(activity)}
+                    </div>
+                    <div class="activity-time">${timeAgo}</div>
+                </div>
+            `;
+            
+            activityFeed.appendChild(activityItem);
+        }
+
+        // Get activity description text
+        function getActivityText(activity) {
+            switch(activity.type) {
+                case 'session_started':
+                    return `started studying ${activity.subject}`;
+                case 'session_completed':
+                    return `completed ${formatTime(activity.duration)} of ${activity.subject}`;
+                case 'joined_group':
+                    return `joined a study group`;
+                case 'created_group':
+                    return `created a new study group`;
+                default:
+                    return 'performed an activity';
+            }
+        }
+
+        // Record activity function
+        function recordActivity(type, data = {}) {
+            if (!currentUser) return;
+            
+            const activity = {
+                userId: currentUser.uid,
+                userName: data.userName || document.getElementById('username').textContent,
+                type: type,
+                subject: data.subject || null,
+                duration: data.duration || null,
+                groupId: data.groupId || null,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            
+            db.collection('activities').add(activity)
+                .catch(error => {
+                    console.error('Error recording activity:', error);
+                });
+        }
+
+        // Navigation function
+        function navigateTo(page) {
+            // Hide all pages
+            document.getElementById('dashboard-page').style.display = 'none';
+            document.getElementById('study-page').style.display = 'none';
+            document.getElementById('groups-page').style.display = 'none';
+            document.getElementById('group-chat-page').style.display = 'none';
+            document.getElementById('statistics-page').style.display = 'none';
+            document.getElementById('profile-page').style.display = 'none';
+            document.getElementById('settings-page').style.display = 'none';
+
+            // Show/hide members sidebar
+            if (page === 'groups') {
+                membersSidebar.style.display = 'flex';
+            } else {
+                membersSidebar.style.display = 'none';
+                // Remove group listeners when leaving groups page
+                if (currentGroupMembersListener) {
+                    currentGroupMembersListener();
+                    currentGroupMembersListener = null;
+                }
+                if (currentGroupMessagesListener) {
+                    currentGroupMessagesListener();
+                    currentGroupMessagesListener = null;
+                }
+                // Remove user status listeners
+                userStatusListeners.forEach(unsubscribe => unsubscribe());
+                userStatusListeners = [];
+            }
+
+            // Show selected page
+            document.getElementById(`${page}-page`).style.display = 'block';
+
+            // Update active nav item
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            document.querySelector(`.nav-item[onclick="navigateTo('${page}')"]`).classList.add('active');
+
+            // Update page title
+            const titles = {
+                'dashboard': 'Dashboard',
+                'study': 'Study Timer',
+                'groups': 'Study Groups',
+                'statistics': 'Statistics',
+                'profile': 'Profile',
+                'settings': 'Settings'
+            };
+            document.getElementById('page-title').textContent = titles[page];
+            document.getElementById('page-subtitle').textContent = page === 'dashboard' ? 'Collaborative Study App' : `${titles[page]} • StudyFlow`;
+        }
+
+        // Timer functions
+        function startTimer() {
+            if (isTimerRunning) return;
+            
+            isTimerRunning = true;
+            document.getElementById('start-timer').disabled = true;
+            document.getElementById('stop-timer').disabled = false;
+            
+            timerInterval = setInterval(() => {
+                timerSeconds++;
+                updateTimerDisplay();
+            }, 1000);
+            
+            // Update user status to studying with session start time
+            const sessionStart = firebase.firestore.FieldValue.serverTimestamp();
+            db.collection('users').doc(currentUser.uid).update({
+                status: 'studying',
+                currentSubject: currentSubject,
+                currentSessionStart: sessionStart,
+                lastActivity: sessionStart
+            });
+            
+            // Record activity
+            recordActivity('session_started', {
+                subject: currentSubject,
+                userName: document.getElementById('username').textContent
+            });
+            
+            console.log("Timer started");
+        }
+
+        function stopTimer() {
+            if (!isTimerRunning) return;
+            
+            isTimerRunning = false;
+            clearInterval(timerInterval);
+            document.getElementById('start-timer').disabled = false;
+            document.getElementById('stop-timer').disabled = true;
+            
+            // Update user status to break
+            db.collection('users').doc(currentUser.uid).update({
+                status: 'break',
+                currentSessionStart: null,
+                lastActivity: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            
+            // Exit focus mode if active
+            if (focusOverlay.style.display === 'flex') {
+                exitFocusMode();
+            }
+        }
+
+        function resetTimer() {
+            stopTimer();
+            timerSeconds = 0;
+            updateTimerDisplay();
+        }
+
+        function updateTimerDisplay() {
+            const hours = Math.floor(timerSeconds / 3600);
+            const minutes = Math.floor((timerSeconds % 3600) / 60);
+            const seconds = timerSeconds % 60;
+            
+            const display = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            document.getElementById('timer-display').textContent = display;
+            document.getElementById('focus-timer').textContent = display;
+        }
+
+        // End session function
+        function endSession() {
+            if (timerSeconds === 0) {
+                alert('No study session to end. Start a timer first.');
+                return;
+            }
+            
+            const duration = timerSeconds;
+            const subject = currentSubject;
+            
+            console.log("Ending session:", { duration, subject });
+            
+            // Save session to database FIRST
+            saveStudySession(subject, duration)
+                .then(() => {
+                    // Record completion activity
+                    recordActivity('session_completed', {
+                        subject: subject,
+                        duration: duration,
+                        userName: document.getElementById('username').textContent
+                    });
+                    
+                    // Reset timer
+                    resetTimer();
+                    
+                    // Update user status to online
+                    db.collection('users').doc(currentUser.uid).update({
+                        status: 'online',
+                        currentSubject: null,
+                        currentSessionStart: null,
+                        lastActivity: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    
+                    // Exit focus mode
+                    exitFocusMode();
+                    
+                    // Show success message
+                    alert(`Study session completed! You studied ${subject} for ${formatTime(duration)}.`);
+                    
+                    // Reload statistics to show updated data
+                    loadStudyStatistics();
+                })
+                .catch(error => {
+                    console.error('Error ending session:', error);
+                    alert('Error saving session: ' + error.message);
+                });
+        }
+
+        // Save study session function
+        function saveStudySession(subject, duration) {
+            if (!currentUser) return Promise.reject('No user logged in');
+            
+            // Create session with client-side timestamp
+            const session = {
+                subject: subject,
+                duration: duration,
+                timestamp: new Date(),
+                date: new Date().toDateString()
+            };
+            
+            console.log("Saving study session:", session);
+            
+            // Get current user data first to calculate new totals
+            return db.collection('users').doc(currentUser.uid).get()
+                .then(doc => {
+                    if (!doc.exists) {
+                        throw new Error('User document not found');
+                    }
+                    
+                    const userData = doc.data();
+                    const currentTotalTime = userData.totalStudyTime || 0;
+                    const currentDailyTime = userData.dailyStudyTime || 0;
+                    const currentSessions = userData.sessionsCompleted || 0;
+                    const currentStudySessions = userData.studySessions || [];
+                    
+                    // Add the new session to the array
+                    const updatedStudySessions = [...currentStudySessions, session];
+                    
+                    // Update user document with new session and totals
+                    return db.collection('users').doc(currentUser.uid).update({
+                        studySessions: updatedStudySessions,
+                        totalStudyTime: currentTotalTime + duration,
+                        dailyStudyTime: currentDailyTime + duration,
+                        sessionsCompleted: currentSessions + 1,
+                        lastActivity: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                })
+                .then(() => {
+                    console.log("Study session saved successfully");
+                    return true;
+                })
+                .catch(error => {
+                    console.error('Error saving study session:', error);
+                    throw error;
+                });
+        }
+
+        function addManualSession() {
+            const subject = document.getElementById('manual-subject').value;
+            const duration = parseInt(document.getElementById('manual-duration').value);
+            const date = document.getElementById('manual-date').value;
+            
+            if (!duration || duration <= 0) {
+                alert('Please enter a valid duration');
+                return;
+            }
+            
+            // Convert minutes to seconds
+            const durationSeconds = duration * 60;
+            
+            // Create session with custom timestamp if date is provided
+            const session = {
+                subject: subject,
+                duration: durationSeconds,
+                timestamp: date ? new Date(date) : new Date(),
+                date: date ? new Date(date).toDateString() : new Date().toDateString()
+            };
+            
+            // Add session to user's study sessions
+            db.collection('users').doc(currentUser.uid).update({
+                studySessions: firebase.firestore.FieldValue.arrayUnion(session),
+                totalStudyTime: firebase.firestore.FieldValue.increment(durationSeconds),
+                dailyStudyTime: firebase.firestore.FieldValue.increment(durationSeconds),
+                sessionsCompleted: firebase.firestore.FieldValue.increment(1)
+            })
+            .then(() => {
+                // Update statistics
+                loadStudyStatistics();
+                
+                // Show success message
+                alert(`Manual session added: ${subject} for ${duration} minutes`);
+                
+                // Reset form
+                document.getElementById('manual-duration').value = '';
+            })
+            .catch(error => {
+                console.error('Error adding manual session:', error);
+                alert('Error adding session: ' + error.message);
+            });
+        }
+
+        function formatTime(seconds) {
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            
+            if (hours > 0) {
+                return `${hours}h ${minutes}m`;
+            } else {
+                return `${minutes}m`;
+            }
+        }
+
+        function formatShortTime(seconds) {
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = seconds % 60;
+            
+            if (hours > 0) {
+                return `${hours}h ${minutes}m`;
+            } else if (minutes > 0) {
+                return `${minutes}m ${secs}s`;
+            } else {
+                return `${secs}s`;
+            }
+        }
+
+        function loadStudyStatistics() {
+            if (!currentUser) return;
+            
+            db.collection('users').doc(currentUser.uid).get()
+                .then(doc => {
+                    if (doc.exists) {
+                        const userData = doc.data();
+                        const studySessions = userData.studySessions || [];
+                        const totalStudyTime = userData.totalStudyTime || 0;
+                        const dailyStudyTime = userData.dailyStudyTime || 0;
+                        const sessionsCompleted = userData.sessionsCompleted || 0;
+                        
+                        console.log("Study sessions:", studySessions);
+                        console.log("Total study time:", totalStudyTime);
+                        console.log("Daily study time:", dailyStudyTime);
+                        
+                        // Update UI
+                        document.getElementById('total-study-time').textContent = formatTime(totalStudyTime);
+                        document.getElementById('daily-study-time').textContent = formatTime(dailyStudyTime);
+                        document.getElementById('sessions-completed').textContent = sessionsCompleted;
+                        document.getElementById('current-streak').textContent = userData.currentStreak || 0;
+                        
+                        document.getElementById('stats-total-time').textContent = formatTime(totalStudyTime);
+                        document.getElementById('stats-daily-time').textContent = formatTime(dailyStudyTime);
+                        document.getElementById('stats-sessions').textContent = sessionsCompleted;
+                        document.getElementById('stats-avg-session').textContent = sessionsCompleted > 0 ? 
+                            formatTime(totalStudyTime / sessionsCompleted) : '0m';
+                        document.getElementById('stats-streak').textContent = userData.currentStreak || 0;
+                        
+                        document.getElementById('profile-total-time').textContent = formatTime(totalStudyTime);
+                        document.getElementById('profile-daily-time').textContent = formatTime(dailyStudyTime);
+                        document.getElementById('profile-sessions').textContent = sessionsCompleted;
+                        document.getElementById('profile-streak').textContent = userData.currentStreak || 0;
+                        
+                        // Update daily progress
+                        updateDailyProgress(dailyStudyTime);
+                        
+                        // Update subject breakdown
+                        updateSubjectBreakdown(studySessions);
+                        
+                        // Update calendar
+                        updateStudyCalendar(studySessions);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading study statistics:', error);
+                });
+        }
+
+        // Update daily progress display
+        function updateDailyProgress(dailyStudyTime) {
+            const dailyMinutes = Math.floor(dailyStudyTime / 60);
+            const progressPercentage = Math.min(100, Math.floor((dailyMinutes / dailyGoalMinutes) * 100));
+            
+            document.getElementById('daily-progress-bar').style.width = `${progressPercentage}%`;
+            document.getElementById('daily-progress-text').textContent = `${dailyMinutes}m / ${dailyGoalMinutes}m goal`;
+            document.getElementById('daily-progress-percentage').textContent = `${progressPercentage}%`;
+            
+            // Update today's date
+            const today = new Date();
+            document.getElementById('today-date').textContent = today.toLocaleDateString('en-US', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            });
+        }
+
+        // Subject breakdown now shows only today's data
+        function updateSubjectBreakdown(studySessions) {
+            const breakdownElement = document.getElementById('subject-breakdown');
+            breakdownElement.innerHTML = '';
+            
+            // Filter sessions for today only
+            const today = new Date().toDateString();
+            const todaySessions = studySessions.filter(session => {
+                const sessionDate = session.date || (session.timestamp?.toDate ? session.timestamp.toDate().toDateString() : new Date(session.timestamp).toDateString());
+                return sessionDate === today;
+            });
+            
+            if (todaySessions.length === 0) {
+                breakdownElement.innerHTML = '<div class="empty-state"><i class="fas fa-chart-pie"></i><p>No study data available for today</p></div>';
+                return;
+            }
+            
+            // Calculate total time per subject for today
+            const subjectTimes = {};
+            todaySessions.forEach(session => {
+                if (!subjectTimes[session.subject]) {
+                    subjectTimes[session.subject] = 0;
+                }
+                subjectTimes[session.subject] += session.duration;
+            });
+            
+            // Create breakdown items for today
+            Object.keys(subjectTimes).forEach(subject => {
+                const time = subjectTimes[subject];
+                
+                const subjectItem = document.createElement('div');
+                subjectItem.className = 'subject-item';
+                subjectItem.innerHTML = `
+                    <div class="subject-name">${subject.charAt(0).toUpperCase() + subject.slice(1)}</div>
+                    <div class="subject-time">${formatTime(time)}</div>
+                `;
+                
+                breakdownElement.appendChild(subjectItem);
+            });
+            
+            // Update subject breakdown date
+            document.getElementById('subject-breakdown-date').textContent = 'Today';
+        }
+
+        function updateStudyCalendar(studySessions) {
+            const calendarElement = document.getElementById('study-calendar');
+            
+            // For now, we'll show a simple calendar
+            // In a real implementation, you would map study sessions to calendar days
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = today.getMonth();
+            
+            // Get first day of month and number of days
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const daysInMonth = lastDay.getDate();
+            
+            let calendarHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <h3>${firstDay.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</h3>
+                </div>
+                <table class="calendar">
+                    <thead>
+                        <tr>
+                            <th>Sun</th>
+                            <th>Mon</th>
+                            <th>Tue</th>
+                            <th>Wed</th>
+                            <th>Thu</th>
+                            <th>Fri</th>
+                            <th>Sat</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            // Start with empty cells for days before the first day of the month
+            let dayCount = 1;
+            calendarHTML += '<tr>';
+            for (let i = 0; i < firstDay.getDay(); i++) {
+                calendarHTML += '<td></td>';
+            }
+            
+            // Add days of the month
+            for (let i = firstDay.getDay(); i < 7; i++) {
+                const isToday = dayCount === today.getDate();
+                
+                // Check if there are study sessions for this day
+                const hasStudyData = studySessions.some(session => {
+                    const sessionDate = session.timestamp?.toDate ? session.timestamp.toDate() : new Date(session.timestamp);
+                    return sessionDate.getDate() === dayCount && 
+                           sessionDate.getMonth() === month && 
+                           sessionDate.getFullYear() === year;
+                });
+                
+                calendarHTML += `
+                    <td class="calendar-day ${isToday ? 'active' : ''}">
+                        ${dayCount}
+                        ${hasStudyData ? `<div class="study-dot"></div>` : ''}
+                    </td>
+                `;
+                dayCount++;
+            }
+            calendarHTML += '</tr>';
+            
+            // Continue with remaining weeks
+            while (dayCount <= daysInMonth) {
+                calendarHTML += '<tr>';
+                for (let i = 0; i < 7 && dayCount <= daysInMonth; i++) {
+                    const isToday = dayCount === today.getDate();
+                    
+                    // Check if there are study sessions for this day
+                    const hasStudyData = studySessions.some(session => {
+                        const sessionDate = session.timestamp?.toDate ? session.timestamp.toDate() : new Date(session.timestamp);
+                        return sessionDate.getDate() === dayCount && 
+                               sessionDate.getMonth() === month && 
+                               sessionDate.getFullYear() === year;
+                    });
+                    
+                    calendarHTML += `
+                        <td class="calendar-day ${isToday ? 'active' : ''}">
+                            ${dayCount}
+                            ${hasStudyData ? `<div class="study-dot"></div>` : ''}
+                        </td>
+                    `;
+                    dayCount++;
+                }
+                calendarHTML += '</tr>';
+            }
+            
+            calendarHTML += '</tbody></table>';
+            calendarElement.innerHTML = calendarHTML;
+        }
+
+        // Update daily goal function
+        function updateDailyGoal() {
+            const newGoal = parseInt(document.getElementById('daily-goal-input').value);
+            
+            if (!newGoal || newGoal < 15 || newGoal > 480) {
+                alert('Please enter a valid goal between 15 and 480 minutes');
+                return;
+            }
+            
+            dailyGoalMinutes = newGoal;
+            
+            // Update in Firestore
+            db.collection('users').doc(currentUser.uid).update({
+                dailyGoalMinutes: dailyGoalMinutes
+            })
+            .then(() => {
+                // Update progress display
+                loadStudyStatistics();
+                
+                // Show success message
+                alert(`Daily goal updated to ${dailyGoalMinutes} minutes!`);
+            })
+            .catch(error => {
+                console.error('Error updating daily goal:', error);
+                alert('Error updating goal: ' + error.message);
+            });
+        }
+
+        // Subject selection
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.subject-card').forEach(card => {
+                card.addEventListener('click', function() {
+                    if (this.dataset.subject === 'custom') {
+                        document.getElementById('custom-subject-input').style.display = 'block';
+                        return;
+                    }
+                    
+                    document.querySelectorAll('.subject-card').forEach(c => c.classList.remove('active'));
+                    this.classList.add('active');
+                    currentSubject = this.dataset.subject;
+                    
+                    // Update focus subject
+                    document.getElementById('focus-subject').textContent = `Studying ${this.dataset.subject.charAt(0).toUpperCase() + this.dataset.subject.slice(1)}`;
+                });
+            });
+        });
+
+        // Focus mode functions
+        function enterFocusMode() {
+            if (!isTimerRunning) {
+                alert('Please start the timer first before entering focus mode');
+                return;
+            }
+            focusOverlay.style.display = 'flex';
+            document.getElementById('focus-subject').textContent = `Studying ${currentSubject.charAt(0).toUpperCase() + currentSubject.slice(1)}`;
+        }
+
+        function exitFocusMode() {
+            focusOverlay.style.display = 'none';
+            // Don't stop timer when exiting focus mode
+        }
+
+        // Group functions
+        function showCreateGroupModal() {
+            createGroupModal.style.display = 'flex';
+        }
+
+        function hideCreateGroupModal() {
+            createGroupModal.style.display = 'none';
+        }
+
+        function createGroup() {
+            const name = document.getElementById('group-name').value.trim();
+            const description = document.getElementById('group-description').value.trim();
+            const isPublic = document.getElementById('group-public').checked;
+            
+            if (!name) {
+                alert('Please enter a group name');
+                return;
+            }
+            
+            // Generate a unique group code
+            const groupCode = generateGroupCode();
+            
+            const group = {
+                name: name,
+                description: description,
+                isPublic: isPublic,
+                owner: currentUser.uid,
+                members: [currentUser.uid],
+                groupCode: groupCode,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                memberCount: 1
+            };
+            
+            console.log("Creating group with code:", groupCode);
+            console.log("Group data:", group);
+            
+            // Add group to Firestore
+            db.collection('groups').add(group)
+                .then(docRef => {
+                    console.log("Group created with ID:", docRef.id);
+                    
+                    // Add group to user's groups
+                    return db.collection('users').doc(currentUser.uid).update({
+                        groups: firebase.firestore.FieldValue.arrayUnion(docRef.id)
+                    });
+                })
+                .then(() => {
+                    // Hide modal and reset form
+                    hideCreateGroupModal();
+                    document.getElementById('group-name').value = '';
+                    document.getElementById('group-description').value = '';
+                    document.getElementById('group-public').checked = false;
+                    
+                    // Record activity
+                    recordActivity('created_group', {
+                        userName: document.getElementById('username').textContent
+                    });
+                    
+                    // Show success message with group code
+                    alert(`Group "${name}" created successfully! Your group code is: ${groupCode}`);
+                    
+                    // Reload groups
+                    loadUserGroups();
+                })
+                .catch(error => {
+                    console.error('Error creating group:', error);
+                    alert('Error creating group: ' + error.message);
+                });
+        }
+
+        function generateGroupCode() {
+            // Generate a random 6-character alphanumeric code
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let result = '';
+            for (let i = 0; i < 6; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
+        }
+
+        function loadUserGroups() {
+            if (!currentUser) return;
+            
+            // Remove existing listener if any
+            if (userGroupsListener) {
+                userGroupsListener();
+            }
+            
+            // Listen for user's groups in real-time
+            userGroupsListener = db.collection('groups')
+                .where('members', 'array-contains', currentUser.uid)
+                .onSnapshot(snapshot => {
+                    const groupsList = document.getElementById('user-groups-list');
+                    groupsList.innerHTML = '';
+                    
+                    if (snapshot.empty) {
+                        groupsList.innerHTML = `
+                            <div class="empty-state">
+                                <i class="fas fa-users"></i>
+                                <p>You haven't joined any groups yet</p>
+                                <button class="button" style="margin-top: 16px;" onclick="showPublicGroups()">
+                                    <i class="fas fa-search"></i> Browse Public Groups
+                                </button>
+                            </div>
+                        `;
+                        return;
+                    }
+                    
+                    snapshot.forEach(doc => {
+                        const group = { id: doc.id, ...doc.data() };
+                        renderGroupItem(group);
+                    });
+                }, error => {
+                    console.error('Error loading user groups:', error);
+                });
+        }
+
+        // Render group item with proper group code display
+        function renderGroupItem(group) {
+            const groupsList = document.getElementById('user-groups-list');
+            
+            const groupItem = document.createElement('div');
+            groupItem.className = 'group-item';
+            groupItem.dataset.groupId = group.id;
+            groupItem.innerHTML = `
+                <div class="group-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="group-details">
+                    <div class="group-name">${group.name}</div>
+                    <div class="group-code">Code: ${group.groupCode || 'Loading...'}</div>
+                </div>
+                <div class="group-status">${group.members ? group.members.length : 0} members</div>
+            `;
+            
+            groupItem.addEventListener('click', () => {
+                // Select this group
+                selectGroup(group);
+            });
+            
+            groupsList.appendChild(groupItem);
+        }
+
+        function loadPublicGroups() {
+            if (!currentUser) return;
+            
+            // Remove existing listener if any
+            if (publicGroupsListener) {
+                publicGroupsListener();
+            }
+            
+            // Listen for public groups in real-time
+            publicGroupsListener = db.collection('groups')
+                .where('isPublic', '==', true)
+                .onSnapshot(snapshot => {
+                    const publicGroupsList = document.getElementById('public-groups-list');
+                    publicGroupsList.innerHTML = '';
+                    
+                    if (snapshot.empty) {
+                        publicGroupsList.innerHTML = '<div class="empty-state"><i class="fas fa-users"></i><p>No public groups available</p></div>';
+                        return;
+                    }
+                    
+                    snapshot.forEach(doc => {
+                        const group = { id: doc.id, ...doc.data() };
+                        
+                        // Skip groups the user is already in
+                        if (group.members.includes(currentUser.uid)) return;
+                        
+                        const groupCard = document.createElement('div');
+                        groupCard.className = 'public-group-card';
+                        groupCard.innerHTML = `
+                            <div class="public-group-header">
+                                <div class="public-group-icon">
+                                    <i class="fas fa-users"></i>
+                                </div>
+                                <div class="public-group-info">
+                                    <div class="public-group-name">${group.name}</div>
+                                    <div class="public-group-members">${group.members.length} members</div>
+                                </div>
+                            </div>
+                            <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 16px;">${group.description}</p>
+                            <button class="button" style="width: 100%;" onclick="joinGroup('${group.id}')">
+                                <i class="fas fa-plus"></i> Join Group
+                            </button>
+                        `;
+                        
+                        publicGroupsList.appendChild(groupCard);
+                    });
+                }, error => {
+                    console.error('Error loading public groups:', error);
+                });
+        }
+
+        function showPublicGroups() {
+            document.getElementById('user-groups-list').style.display = 'none';
+            document.getElementById('public-groups-card').style.display = 'block';
+        }
+
+        function hidePublicGroups() {
+            document.getElementById('user-groups-list').style.display = 'block';
+            document.getElementById('public-groups-card').style.display = 'none';
+        }
+
+        function joinGroup(groupId) {
+            // Add user to group members
+            db.collection('groups').doc(groupId).update({
+                members: firebase.firestore.FieldValue.arrayUnion(currentUser.uid)
+            })
+            .then(() => {
+                // Add group to user's groups
+                return db.collection('users').doc(currentUser.uid).update({
+                    groups: firebase.firestore.FieldValue.arrayUnion(groupId)
+                });
+            })
+            .then(() => {
+                // Record activity
+                recordActivity('joined_group', {
+                    userName: document.getElementById('username').textContent
+                });
+                
+                // Hide public groups
+                hidePublicGroups();
+                
+                // Show success message
+                alert('Successfully joined the group!');
+                
+                // Reload groups
+                loadUserGroups();
+            })
+            .catch(error => {
+                console.error('Error joining group:', error);
+                alert('Error joining group: ' + error.message);
+            });
+        }
+
+        function joinGroupWithCode() {
+            const groupCode = document.getElementById('join-group-code').value.trim().toUpperCase();
+            
+            if (!groupCode) {
+                alert('Please enter a group code');
+                return;
+            }
+            
+            // Find group by code
+            db.collection('groups')
+                .where('groupCode', '==', groupCode)
+                .get()
+                .then(snapshot => {
+                    if (snapshot.empty) {
+                        alert('No group found with that code');
+                        return;
+                    }
+                    
+                    const groupDoc = snapshot.docs[0];
+                    const group = { id: groupDoc.id, ...groupDoc.data() };
+                    
+                    // Check if user is already a member
+                    if (group.members.includes(currentUser.uid)) {
+                        alert('You are already a member of this group');
+                        return;
+                    }
+                    
+                    // Join the group
+                    return joinGroup(group.id);
+                })
+                .catch(error => {
+                    console.error('Error finding group:', error);
+                    alert('Error finding group: ' + error.message);
+                });
+        }
+
+        function selectGroup(group) {
+            currentGroup = group;
+            
+            // Update group members sidebar
+            updateGroupMembers(group);
+            
+            // Update group stats
+            updateGroupStats(group);
+            
+            // Show group stats
+            document.getElementById('group-stats').style.display = 'flex';
+            
+            // Highlight selected group
+            document.querySelectorAll('.group-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            document.querySelector(`.group-item[data-group-id="${group.id}"]`).classList.add('active');
+            
+            // Add chat button
+            const chatButton = document.createElement('button');
+            chatButton.className = 'button';
+            chatButton.style.marginTop = '10px';
+            chatButton.style.width = '100%';
+            chatButton.innerHTML = '<i class="fas fa-comments"></i> Open Chat';
+            chatButton.onclick = () => openGroupChat(group);
+            
+            // Remove any existing chat button
+            const groupItem = document.querySelector(`.group-item[data-group-id="${group.id}"]`);
+            const existingButton = groupItem.querySelector('.chat-button');
+            if (existingButton) {
+                existingButton.remove();
+            }
+            
+            chatButton.classList.add('chat-button');
+            groupItem.appendChild(chatButton);
+        }
+
+        // Group members loading function - properly shows all members with correct status
+        function updateGroupMembers(group) {
+            const membersList = document.getElementById('members-list');
+            membersList.innerHTML = '<div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Loading members...</p></div>';
+            
+            // Remove existing listener if any
+            if (currentGroupMembersListener) {
+                currentGroupMembersListener();
+            }
+
+            // Remove all user status listeners
+            userStatusListeners.forEach(unsubscribe => unsubscribe());
+            userStatusListeners = [];
+            
+            const memberIds = group.members || [];
+            
+            if (memberIds.length === 0) {
+                membersList.innerHTML = '<div class="empty-state"><i class="fas fa-user-friends"></i><p>No members in this group</p></div>';
+                return;
+            }
+            
+            // Clear the list and reload all members
+            membersList.innerHTML = '';
+            
+            // Track loaded members to avoid duplicates
+            const loadedMemberIds = new Set();
+            
+            // Load each member individually
+            memberIds.forEach(memberId => {
+                if (loadedMemberIds.has(memberId)) return;
+                loadedMemberIds.add(memberId);
+                
+                const unsubscribe = db.collection('users').doc(memberId)
+                    .onSnapshot(doc => {
+                        if (doc.exists) {
+                            const user = { id: doc.id, ...doc.data() };
+                            renderMemberItem(user);
+                        }
+                    }, error => {
+                        console.error('Error loading user:', memberId, error);
+                        // Create a placeholder for failed loads
+                        const placeholderUser = {
+                            id: memberId,
+                            username: 'Unknown User',
+                            status: 'offline'
+                        };
+                        renderMemberItem(placeholderUser);
+                    });
+                
+                userStatusListeners.push(unsubscribe);
+            });
+        }
+
+        // Helper function to render individual member items
+        function renderMemberItem(user) {
+            const membersList = document.getElementById('members-list');
+            
+            // Remove existing item for this user if it exists
+            const existingItem = membersList.querySelector(`[data-user-id="${user.id}"]`);
+            if (existingItem) {
+                existingItem.remove();
+            }
+            
+            const isCurrentUser = user.id === currentUser.uid;
+            
+            // Determine status class and text
+            let statusClass = 'online';
+            let statusText = 'Online';
+            let statusIndicator = 'status-online';
+            let studyInfo = '';
+            
+            if (user.status === 'studying') {
+                statusClass = 'studying';
+                statusText = 'Studying';
+                statusIndicator = 'status-studying';
+                
+                // Calculate study session duration
+                if (user.currentSessionStart) {
+                    const sessionStart = user.currentSessionStart.toDate ? user.currentSessionStart.toDate() : new Date(user.currentSessionStart);
+                    const now = new Date();
+                    const duration = Math.floor((now - sessionStart) / 1000); // in seconds
+                    studyInfo = `<div class="study-session-info">${user.currentSubject ? user.currentSubject.charAt(0).toUpperCase() + user.currentSubject.slice(1) : 'Unknown'} • <span class="study-time">${formatShortTime(duration)}</span></div>`;
+                }
+            } else if (user.status === 'break') {
+                statusClass = 'break';
+                statusText = 'On Break';
+                statusIndicator = 'status-break';
+            } else if (user.status === 'offline') {
+                statusClass = 'offline';
+                statusText = 'Offline';
+                statusIndicator = 'status-offline';
+                
+                // Add last seen time if offline
+                if (user.lastSeen) {
+                    studyInfo = `<div class="study-session-info">Last seen ${getTimeAgo(user.lastSeen)}</div>`;
+                }
+            }
+            
+            const memberItem = document.createElement('div');
+            memberItem.className = 'member-item';
+            memberItem.setAttribute('data-user-id', user.id);
+            
+            memberItem.innerHTML = `
+                <div class="member-avatar">${user.username ? user.username.charAt(0).toUpperCase() : 'U'}</div>
+                <div class="member-details">
+                    <div class="member-name">${user.username || 'Unknown User'} ${isCurrentUser ? '(You)' : ''}</div>
+                    <div class="member-status ${statusClass}">
+                        <span class="status-indicator ${statusIndicator}"></span>
+                        ${statusText}
+                    </div>
+                    ${studyInfo}
+                </div>
+            `;
+            
+            membersList.appendChild(memberItem);
+        }
+
+        function updateGroupStats(group) {
+            // Calculate group stats based on real data
+            const totalMembers = group.members.length;
+            
+            // For total study time, we would need to aggregate from all members
+            // This is a more complex operation that would require cloud functions
+            // For now, we'll show the member count
+            document.getElementById('group-total-time').textContent = `${totalMembers}m`;
+            
+            // Show group stats
+            document.getElementById('group-stats').style.display = 'flex';
+        }
+
+        function openGroupChat(group) {
+            currentGroup = group;
+            
+            // Update chat header
+            document.getElementById('chat-group-name').textContent = group.name;
+            document.getElementById('chat-group-info').textContent = `${group.members.length} members • ${group.isPublic ? 'Public' : 'Private'}`;
+            
+            // Show group chat page
+            document.getElementById('groups-page').style.display = 'none';
+            document.getElementById('group-chat-page').style.display = 'block';
+            
+            // Load group messages
+            loadGroupMessages(group.id);
+        }
+
+        function showGroups() {
+            document.getElementById('group-chat-page').style.display = 'none';
+            document.getElementById('groups-page').style.display = 'block';
+            
+            // Remove message listener when leaving chat
+            if (currentGroupMessagesListener) {
+                currentGroupMessagesListener();
+                currentGroupMessagesListener = null;
+            }
+            // Remove user status listeners
+            userStatusListeners.forEach(unsubscribe => unsubscribe());
+            userStatusListeners = [];
+        }
+
+        function loadGroupMessages(groupId) {
+            const chatMessages = document.getElementById('chat-messages');
+            chatMessages.innerHTML = '';
+            
+            // Remove existing listener if any
+            if (currentGroupMessagesListener) {
+                currentGroupMessagesListener();
+            }
+            
+            // Listen for group messages in real-time
+            currentGroupMessagesListener = db.collection('groups')
+                .doc(groupId)
+                .collection('messages')
+                .orderBy('timestamp', 'asc')
+                .onSnapshot(snapshot => {
+                    chatMessages.innerHTML = '';
+                    
+                    if (snapshot.empty) {
+                        chatMessages.innerHTML = '<div class="empty-state"><i class="fas fa-comments"></i><p>No messages yet. Start the conversation!</p></div>';
+                        return;
+                    }
+                    
+                    snapshot.forEach(doc => {
+                        const message = doc.data();
+                        renderMessage(message);
+                    });
+                    
+                    // Scroll to bottom
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                }, error => {
+                    console.error('Error loading group messages:', error);
+                });
+        }
+
+        function renderMessage(message) {
+            const chatMessages = document.getElementById('chat-messages');
+            const isOwnMessage = message.senderId === currentUser.uid;
+            
+            const messageEl = document.createElement('div');
+            messageEl.className = `message ${isOwnMessage ? 'own' : 'other'}`;
+            
+            const timeString = message.timestamp ? 
+                message.timestamp.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 
+                'Just now';
+            
+            messageEl.innerHTML = `
+                <div class="message-sender">${message.senderName}</div>
+                <div class="message-text">${message.text}</div>
+                <div class="message-time">${timeString}</div>
+            `;
+            
+            chatMessages.appendChild(messageEl);
+        }
+
+        function sendMessage() {
+            if (!currentGroup) return;
+            
+            const input = document.getElementById('chat-input-field');
+            const text = input.value.trim();
+            
+            if (!text) return;
+            
+            // Get current user's username
+            db.collection('users').doc(currentUser.uid).get()
+                .then(snapshot => {
+                    if (snapshot.exists) {
+                        const user = snapshot.data();
+                        const senderName = user.username || 'Unknown User';
+                        
+                        // Add message to Firestore
+                        return db.collection('groups')
+                            .doc(currentGroup.id)
+                            .collection('messages')
+                            .add({
+                                text: text,
+                                senderId: currentUser.uid,
+                                senderName: senderName,
+                                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                            });
+                    }
+                })
+                .then(() => {
+                    input.value = '';
+                })
+                .catch(error => {
+                    console.error('Error sending message:', error);
+                });
+        }
+
+        function updateProfile() {
+            const username = document.getElementById('profile-username-input').value.trim();
+            const email = document.getElementById('profile-email-input').value.trim();
+            
+            if (!username) {
+                alert('Please enter a username');
+                return;
+            }
+            
+            // Update Firestore
+            db.collection('users').doc(currentUser.uid).update({
+                username: username
+            })
+            .then(() => {
+                // Update UI
+                document.getElementById('username').textContent = username;
+                document.getElementById('dashboard-username').textContent = username;
+                document.getElementById('profile-username').textContent = username;
+                document.getElementById('user-avatar').textContent = username.charAt(0).toUpperCase();
+                document.getElementById('profile-avatar').textContent = username.charAt(0).toUpperCase();
+                
+                // Show success message
+                alert('Profile updated successfully!');
+            })
+            .catch(error => {
+                console.error('Error updating profile:', error);
+                alert('Error updating profile: ' + error.message);
+            });
+        }
+
+        // Utility functions
+        function getTimeAgo(timestamp) {
+            if (!timestamp) return 'recently';
+            
+            const now = new Date();
+            const time = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+            const diffInSeconds = Math.floor((now - time) / 1000);
+            
+            if (diffInSeconds < 60) return 'just now';
+            if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+            if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+            if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
+            return `${Math.floor(diffInSeconds / 604800)}w ago`;
+        }
+
+        function toggleTheme() {
+            const currentTheme = document.body.getAttribute('data-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            
+            document.body.setAttribute('data-theme', newTheme);
+            document.getElementById('theme-icon').className = newTheme === 'light' ? 'fas fa-moon' : 'fas fa-sun';
+            document.getElementById('theme-label').textContent = newTheme === 'light' ? 'Light Mode' : 'Dark Mode';
+            document.getElementById('theme-switch').checked = newTheme === 'dark';
+            
+            // Save preference to localStorage
+            localStorage.setItem('theme', newTheme);
+        }
+
+        function toggleThemeFromSwitch() {
+            toggleTheme();
+        }
+
+        // Load saved theme
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.body.setAttribute('data-theme', savedTheme);
+        document.getElementById('theme-icon').className = savedTheme === 'light' ? 'fas fa-moon' : 'fas fa-sun';
+        document.getElementById('theme-label').textContent = savedTheme === 'light' ? 'Light Mode' : 'Dark Mode';
+        document.getElementById('theme-switch').checked = savedTheme === 'dark';
+
+        // Set current date for manual session
+        document.getElementById('manual-date').valueAsDate = new Date();
+
+        // Initialize the app when the page loads
+        window.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+</html>
