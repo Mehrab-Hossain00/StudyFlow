@@ -1,0 +1,2574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StudyFlow • Collaborative Study App</title>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        }
+
+        :root {
+            --primary: #007AFF;
+            --secondary: #5856D6;
+            --background: rgba(242, 242, 247, 0.9);
+            --card-bg: rgba(255, 255, 255, 0.7);
+            --text: #1C1C1E;
+            --text-secondary: #8E8E93;
+            --border: rgba(60, 60, 67, 0.1);
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            --blur: blur(20px);
+            --success: #34C759;
+            --warning: #FF9500;
+            --danger: #FF3B30;
+            --glass-border: 1px solid rgba(255, 255, 255, 0.2);
+            --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        [data-theme="dark"] {
+            --primary: #0A84FF;
+            --secondary: #5E5CE6;
+            --background: rgba(28, 28, 30, 0.9);
+            --card-bg: rgba(44, 44, 46, 0.7);
+            --text: #FFFFFF;
+            --text-secondary: #8E8E93;
+            --border: rgba(84, 84, 88, 0.6);
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            --glass-border: 1px solid rgba(255, 255, 255, 0.1);
+            --bg-gradient: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+        }
+
+        body {
+            background: var(--bg-gradient);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 0;
+            transition: all 0.3s ease;
+        }
+
+        .container {
+            width: 100%;
+            height: 100vh;
+            background: var(--background);
+            backdrop-filter: var(--blur);
+            -webkit-backdrop-filter: var(--blur);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            padding: 24px;
+            border-bottom: 1px solid var(--border);
+            background: var(--card-bg);
+            position: relative;
+            backdrop-filter: var(--blur);
+            -webkit-backdrop-filter: var(--blur);
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 16px;
+        }
+
+        .content {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 300px;
+            border-right: 1px solid var(--border);
+            background: var(--card-bg);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            backdrop-filter: var(--blur);
+            -webkit-backdrop-filter: var(--blur);
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .page-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0;
+        }
+
+        .section {
+            padding: 20px;
+        }
+
+        .section-title {
+            font-size: 22px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .section-title i {
+            margin-right: 12px;
+            color: var(--primary);
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            border: var(--glass-border);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            backdrop-filter: var(--blur);
+            -webkit-backdrop-filter: var(--blur);
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+        }
+
+        .input-group {
+            margin-bottom: 16px;
+        }
+
+        .input-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            border: var(--glass-border);
+            background: var(--card-bg);
+            font-size: 16px;
+            transition: all 0.2s ease;
+            color: var(--text);
+            backdrop-filter: var(--blur);
+            -webkit-backdrop-filter: var(--blur);
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.2);
+        }
+
+        .button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 12px 20px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: var(--blur);
+            -webkit-backdrop-filter: var(--blur);
+        }
+
+        .button:hover {
+            background: #0056CC;
+            transform: translateY(-2px);
+        }
+
+        .button i {
+            margin-right: 8px;
+        }
+
+        .button-secondary {
+            background: transparent;
+            color: var(--primary);
+            border: 1px solid var(--primary);
+        }
+
+        .button-secondary:hover {
+            background: rgba(0, 122, 255, 0.1);
+        }
+
+        .button-success {
+            background: var(--success);
+        }
+
+        .button-success:hover {
+            background: #2DA44E;
+        }
+
+        .button-danger {
+            background: var(--danger);
+        }
+
+        .button-danger:hover {
+            background: #D70015;
+        }
+
+        .button-warning {
+            background: var(--warning);
+        }
+
+        .button-warning:hover {
+            background: #E68500;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 12px;
+        }
+
+        .button-group .button {
+            flex: 1;
+        }
+
+        .groups-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0 20px 20px;
+        }
+
+        .group-item {
+            display: flex;
+            align-items: center;
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            background: var(--card-bg);
+            border: var(--glass-border);
+            transition: all 0.2s ease;
+            cursor: pointer;
+            backdrop-filter: var(--blur);
+            -webkit-backdrop-filter: var(--blur);
+        }
+
+        .group-item.active {
+            border-color: var(--primary);
+            background: rgba(0, 122, 255, 0.1);
+        }
+
+        .group-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .group-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+            margin-right: 16px;
+        }
+
+        .group-details {
+            flex: 1;
+        }
+
+        .group-name {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .group-code {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .group-status {
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 8px;
+            background: var(--success);
+            color: white;
+        }
+
+        .group-status.break {
+            background: var(--warning);
+        }
+
+        .chat-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+            background: var(--card-bg);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            backdrop-filter: var(--blur);
+            -webkit-backdrop-filter: var(--blur);
+        }
+
+        .chat-title {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .chat-info {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .message {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            position: relative;
+            backdrop-filter: var(--blur);
+            -webkit-backdrop-filter: var(--blur);
+        }
+
+        .message.own {
+            align-self: flex-end;
+            background: var(--primary);
+            color: white;
+            border-bottom-right-radius: 6px;
+        }
+
+        .message.other {
+            align-self: flex-start;
+            background: var(--card-bg);
+            border: var(--glass-border);
+            border-bottom-left-radius: 6px;
+        }
+
+        .message-sender {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+        .message.own .message-sender {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .message.other .message-sender {
+            color: var(--primary);
+        }
+
+        .message-time {
+            font-size: 12px;
+            text-align: right;
+            margin-top: 4px;
+            opacity: 0.7;
+        }
+
+        .chat-input {
+            padding: 20px;
+            border-top: 1px solid var(--border);
+            background: var(--card-bg);
+            display: flex;
+            gap: 12px;
+            backdrop-filter: var(--blur);
+            -webkit-backdrop-filter: var(--blur);
+        }
+
+        .chat-input-field {
+            flex: 1;
+            padding: 12px 16px;
+            border-radius: 20px;
+            border: var(--glass-border);
+            background: var(--card-bg);
+            font-size: 16px;
+            color: var(--text);
+            backdrop-filter: var(--blur);
+            -webkit-backdrop-filter: var(--blur);
+        }
+
+        .chat-input-field:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .send-button {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            backdrop-filter: var(--blur);
+            -webkit-backdrop-filter: var(--blur);
+        }
+
+        .send-button:hover {
+            background: #0056CC;
+            transform: scale(1.05);
+        }
+
+        .members-sidebar {
+            width: 280px;
+            border-left: 1px solid var(--border);
+            background: var(--card-bg);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            backdrop-filter: var(--blur);
+            -webkit-backdrop-filter: var(--blur);
+        }
+
+        .members-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+            font-weight: 600;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .members-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0 20px 20px;
+        }
+
+        .member-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .member-item:last-child {
+            border-bottom: none;
+        }
+
+        .member-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            margin-right: 12px;
+            flex-shrink: 0;
+        }
+
+        .member-details {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .member-name {
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 4px;
+        }
+
+        .member-status {
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .member-status.studying {
+            color: var(--success);
+        }
+
+        .member-status.break {
+            color: var(--warning);
+        }
+
+        .member-status.online {
+            color: var(--text-secondary);
+        }
+
+        .member-status.offline {
+            color: var(--text-secondary);
+            opacity: 0.6;
+        }
+
+        .timer {
+            font-family: 'Courier New', monospace;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-secondary);
+        }
+
+        .empty-state i {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .nav-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .nav-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .nav-items {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px 0;
+            overflow-y: auto;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            margin: 4px 0;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .nav-item.active {
+            background: rgba(0, 122, 255, 0.1);
+            color: var(--primary);
+        }
+
+        .nav-item:hover:not(.active) {
+            background: rgba(0, 0, 0, 0.05);
+        }
+
+        .nav-item i {
+            width: 24px;
+            margin-right: 12px;
+            font-size: 18px;
+        }
+
+        .nav-footer {
+            padding: 20px;
+            border-top: 1px solid var(--border);
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            margin-right: 12px;
+        }
+
+        .user-details h3 {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .user-details p {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        /* Activity Feed Styles */
+        .activity-feed {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .activity-item {
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+        
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+        
+        .activity-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: var(--primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        
+        .activity-content {
+            flex: 1;
+        }
+        
+        .activity-text {
+            margin-bottom: 4px;
+        }
+        
+        .activity-time {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        
+        .live-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+            margin-right: 6px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        /* Timer Styles - Stopwatch Style */
+        .timer-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+        }
+
+        .timer-display {
+            font-size: 5rem;
+            font-weight: bold;
+            text-align: center;
+            margin: 2rem 0;
+            font-family: 'Courier New', monospace;
+            color: var(--primary);
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 20px;
+            border: var(--glass-border);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: var(--blur);
+            -webkit-backdrop-filter: var(--blur);
+        }
+
+        .timer-controls {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .timer-btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 16px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            backdrop-filter: var(--blur);
+            -webkit-backdrop-filter: var(--blur);
+        }
+
+        .timer-btn.start {
+            background: var(--success);
+            color: white;
+        }
+
+        .timer-btn.stop {
+            background: var(--danger);
+            color: white;
+        }
+
+        .timer-btn.reset {
+            background: var(--warning);
+            color: white;
+        }
+
+        .timer-btn.end {
+            background: var(--primary);
+            color: white;
+        }
+
+        .timer-btn.focus {
+            background: var(--secondary);
+            color: white;
+        }
+
+        .timer-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .subject-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 12px;
+            margin-bottom: 2rem;
+        }
+
+        .subject-card {
+            padding: 16px;
+            border-radius: 12px;
+            background: var(--card-bg);
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            backdrop-filter: var(--blur);
+            -webkit-backdrop-filter: var(--blur);
+        }
+
+        .subject-card.active {
+            border-color: var(--primary);
+            background: rgba(0, 122, 255, 0.1);
+        }
+
+        .subject-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .subject-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 18px;
+        }
+
+        /* Stats Styles */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 16px;
+            text-align: center;
+            border: var(--glass-border);
+            backdrop-filter: var(--blur);
+            -webkit-backdrop-filter: var(--blur);
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: var(--primary);
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--border);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 1rem 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--primary);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        /* Focus Mode Overlay */
+        .focus-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            color: white;
+        }
+
+        .focus-timer {
+            font-size: 6rem;
+            font-weight: bold;
+            margin-bottom: 2rem;
+            font-family: 'Courier New', monospace;
+        }
+
+        .focus-subject {
+            font-size: 1.5rem;
+            margin-bottom: 2rem;
+            opacity: 0.8;
+        }
+
+        /* Theme Toggle */
+        .theme-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: var(--card-bg);
+            border: var(--glass-border);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 100;
+            backdrop-filter: var(--blur);
+            -webkit-backdrop-filter: var(--blur);
+        }
+
+        .theme-toggle:hover {
+            transform: rotate(30deg);
+        }
+
+        /* Manual Session Styles */
+        .manual-session-form {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        /* User Profile Styles */
+        .profile-header {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+
+        .profile-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 32px;
+            font-weight: bold;
+        }
+
+        .profile-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .profile-stat {
+            text-align: center;
+            padding: 16px;
+            background: var(--card-bg);
+            border-radius: 12px;
+            border: var(--glass-border);
+            backdrop-filter: var(--blur);
+            -webkit-backdrop-filter: var(--blur);
+        }
+
+        .profile-stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--primary);
+            margin-bottom: 4px;
+        }
+
+        .profile-stat-label {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        /* Public Groups Styles */
+        .public-groups-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .public-group-card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 20px;
+            border: var(--glass-border);
+            transition: all 0.2s ease;
+            backdrop-filter: var(--blur);
+            -webkit-backdrop-filter: var(--blur);
+        }
+
+        .public-group-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+        }
+
+        .public-group-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .public-group-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            margin-right: 12px;
+        }
+
+        .public-group-info {
+            flex: 1;
+        }
+
+        .public-group-name {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .public-group-members {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        /* Member Status Indicator */
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            flex-shrink: 0;
+        }
+
+        .status-studying {
+            background-color: var(--success);
+        }
+
+        .status-break {
+            background-color: var(--warning);
+        }
+
+        .status-online {
+            background-color: var(--primary);
+        }
+
+        .status-offline {
+            background-color: var(--text-secondary);
+            opacity: 0.5;
+        }
+
+        /* Switch Toggle */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--border);
+            transition: .4s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--primary);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+
+        /* Calendar Styles */
+        .calendar {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 16px;
+        }
+
+        .calendar th, .calendar td {
+            padding: 12px;
+            text-align: center;
+            border: 1px solid var(--border);
+        }
+
+        .calendar th {
+            background: var(--card-bg);
+            font-weight: 600;
+        }
+
+        .calendar-day {
+            position: relative;
+            height: 60px;
+            cursor: pointer;
+        }
+
+        .calendar-day:hover {
+            background: rgba(0, 122, 255, 0.1);
+        }
+
+        .calendar-day.active {
+            background: rgba(0, 122, 255, 0.2);
+        }
+
+        .study-dot {
+            position: absolute;
+            bottom: 5px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--primary);
+        }
+
+        .study-dot.low {
+            background: var(--warning);
+        }
+
+        .study-dot.medium {
+            background: var(--primary);
+        }
+
+        .study-dot.high {
+            background: var(--success);
+        }
+
+        /* Group Stats */
+        .group-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+            padding: 20px;
+        }
+
+        .group-stat {
+            background: var(--card-bg);
+            padding: 16px;
+            border-radius: 12px;
+            text-align: center;
+            border: var(--glass-border);
+        }
+
+        .group-stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary);
+            margin-bottom: 4px;
+        }
+
+        .group-stat-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        /* Join Group Section */
+        .join-group-section {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: var(--glass-border);
+        }
+
+        .join-group-form {
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+        }
+
+        /* Study Session Info */
+        .study-session-info {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        .study-time {
+            font-weight: 600;
+            color: var(--success);
+        }
+
+        /* Daily Progress Styles */
+        .daily-progress {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+            border: var(--glass-border);
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .progress-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .progress-date {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .progress-bar-container {
+            margin: 16px 0;
+        }
+
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .progress-percentage {
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        /* Subject Breakdown Styles */
+        .subject-breakdown-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .subject-breakdown-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .subject-breakdown-date {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .subject-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .subject-item:last-child {
+            border-bottom: none;
+        }
+
+        .subject-name {
+            font-weight: 500;
+        }
+
+        .subject-time {
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        /* Settings Styles */
+        .settings-section {
+            margin-bottom: 24px;
+        }
+
+        .settings-section-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .settings-section-title i {
+            color: var(--primary);
+        }
+
+        .goal-input-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .goal-input {
+            width: 100px;
+            padding: 12px 16px;
+            border-radius: 12px;
+            border: var(--glass-border);
+            background: var(--card-bg);
+            font-size: 16px;
+            color: var(--text);
+            backdrop-filter: var(--blur);
+            -webkit-backdrop-filter: var(--blur);
+        }
+
+        .goal-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.2);
+        }
+
+        .goal-unit {
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        /* Background Gradient Styles */
+        .gradient-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .gradient-option {
+            height: 80px;
+            border-radius: 12px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .gradient-option.active {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.2);
+        }
+
+        .gradient-option:hover {
+            transform: translateY(-2px);
+        }
+
+        .gradient-name {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 8px;
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+            font-size: 12px;
+            text-align: center;
+        }
+
+        /* Responsive Styles */
+        @media (max-width: 1024px) {
+            .content {
+                flex-direction: column;
+            }
+            
+            .sidebar, .members-sidebar {
+                width: 100%;
+                height: auto;
+                max-height: 300px;
+                border-right: none;
+                border-bottom: 1px solid var(--border);
+            }
+            
+            .members-sidebar {
+                border-left: none;
+                border-top: 1px solid var(--border);
+            }
+            
+            .timer-display {
+                font-size: 3rem;
+            }
+            
+            .timer-btn {
+                padding: 12px 20px;
+                font-size: 16px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .timer-display {
+                font-size: 2.5rem;
+            }
+            
+            .timer-controls {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .timer-btn {
+                width: 100%;
+                max-width: 250px;
+                justify-content: center;
+            }
+            
+            .subject-selector {
+                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .manual-session-form {
+                grid-template-columns: 1fr;
+            }
+            
+            .public-groups-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .profile-stats {
+                grid-template-columns: 1fr;
+            }
+            
+            .group-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .section {
+                padding: 16px;
+            }
+            
+            .card {
+                padding: 16px;
+            }
+            
+            .timer-display {
+                font-size: 2rem;
+                padding: 20px;
+            }
+            
+            .group-stats {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>StudyFlow</h1>
+            <div class="subtitle">Collaborative Study App</div>
+            <div class="theme-toggle" id="themeToggle">
+                <i class="fas fa-moon"></i>
+            </div>
+        </header>
+        
+        <div class="content">
+            <div class="sidebar">
+                <div class="nav-container">
+                    <div class="nav-header">
+                        <div class="user-info">
+                            <div class="user-avatar">JS</div>
+                            <div class="user-details">
+                                <h3>John Smith</h3>
+                                <p>Computer Science</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="nav-items">
+                        <div class="nav-item active" data-page="dashboard">
+                            <i class="fas fa-home"></i>
+                            <span>Dashboard</span>
+                        </div>
+                        <div class="nav-item" data-page="timer">
+                            <i class="fas fa-clock"></i>
+                            <span>Study Timer</span>
+                        </div>
+                        <div class="nav-item" data-page="groups">
+                            <i class="fas fa-users"></i>
+                            <span>Study Groups</span>
+                        </div>
+                        <div class="nav-item" data-page="stats">
+                            <i class="fas fa-chart-bar"></i>
+                            <span>Statistics</span>
+                        </div>
+                        <div class="nav-item" data-page="calendar">
+                            <i class="fas fa-calendar-alt"></i>
+                            <span>Calendar</span>
+                        </div>
+                        <div class="nav-item" data-page="settings">
+                            <i class="fas fa-cog"></i>
+                            <span>Settings</span>
+                        </div>
+                    </div>
+                    
+                    <div class="nav-footer">
+                        <div class="button-group">
+                            <button class="button button-secondary" id="logoutBtn">
+                                <i class="fas fa-sign-out-alt"></i>
+                                Logout
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="main-content">
+                <div class="page-content">
+                    <!-- Dashboard Page -->
+                    <div class="page active" id="dashboard">
+                        <div class="section">
+                            <div class="section-title">
+                                <span><i class="fas fa-home"></i> Dashboard</span>
+                                <span class="timer" id="dashboardTimer">00:00:00</span>
+                            </div>
+                            
+                            <div class="card">
+                                <h3>Today's Study Progress</h3>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: 65%"></div>
+                                </div>
+                                <div class="progress-info">
+                                    <span>2h 15m / 3h 30m</span>
+                                    <span class="progress-percentage">65%</span>
+                                </div>
+                            </div>
+                            
+                            <div class="card">
+                                <h3>Active Study Groups</h3>
+                                <div class="groups-list">
+                                    <div class="group-item active">
+                                        <div class="group-icon">
+                                            <i class="fas fa-code"></i>
+                                        </div>
+                                        <div class="group-details">
+                                            <div class="group-name">Computer Science</div>
+                                            <div class="group-code">CS2023</div>
+                                        </div>
+                                        <div class="group-status studying">
+                                            Studying
+                                        </div>
+                                    </div>
+                                    <div class="group-item">
+                                        <div class="group-icon">
+                                            <i class="fas fa-calculator"></i>
+                                        </div>
+                                        <div class="group-details">
+                                            <div class="group-name">Mathematics</div>
+                                            <div class="group-code">MATH101</div>
+                                        </div>
+                                        <div class="group-status break">
+                                            Break
+                                        </div>
+                                    </div>
+                                    <div class="group-item">
+                                        <div class="group-icon">
+                                            <i class="fas fa-flask"></i>
+                                        </div>
+                                        <div class="group-details">
+                                            <div class="group-name">Chemistry</div>
+                                            <div class="group-code">CHEM203</div>
+                                        </div>
+                                        <div class="group-status studying">
+                                            Studying
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="card">
+                                <h3>Recent Activity</h3>
+                                <div class="activity-feed">
+                                    <div class="activity-item">
+                                        <div class="activity-icon">
+                                            <i class="fas fa-user-plus"></i>
+                                        </div>
+                                        <div class="activity-content">
+                                            <div class="activity-text">Sarah joined the Computer Science group</div>
+                                            <div class="activity-time">10 minutes ago</div>
+                                        </div>
+                                    </div>
+                                    <div class="activity-item">
+                                        <div class="activity-icon">
+                                            <i class="fas fa-clock"></i>
+                                        </div>
+                                        <div class="activity-content">
+                                            <div class="activity-text">You completed a 45-minute study session</div>
+                                            <div class="activity-time">1 hour ago</div>
+                                        </div>
+                                    </div>
+                                    <div class="activity-item">
+                                        <div class="activity-icon">
+                                            <i class="fas fa-trophy"></i>
+                                        </div>
+                                        <div class="activity-content">
+                                            <div class="activity-text">You reached your daily study goal!</div>
+                                            <div class="activity-time">2 hours ago</div>
+                                        </div>
+                                    </div>
+                                    <div class="activity-item">
+                                        <div class="activity-icon">
+                                            <i class="fas fa-comment"></i>
+                                        </div>
+                                        <div class="activity-content">
+                                            <div class="activity-text">New message in Mathematics group</div>
+                                            <div class="activity-time">3 hours ago</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Timer Page -->
+                    <div class="page" id="timer">
+                        <div class="section">
+                            <div class="section-title">
+                                <span><i class="fas fa-clock"></i> Study Timer</span>
+                            </div>
+                            
+                            <div class="timer-container">
+                                <div class="timer-display" id="timerDisplay">00:00:00</div>
+                                
+                                <div class="timer-controls">
+                                    <button class="timer-btn start" id="startTimer">
+                                        <i class="fas fa-play"></i> Start
+                                    </button>
+                                    <button class="timer-btn stop" id="stopTimer" disabled>
+                                        <i class="fas fa-pause"></i> Pause
+                                    </button>
+                                    <button class="timer-btn reset" id="resetTimer">
+                                        <i class="fas fa-redo"></i> Reset
+                                    </button>
+                                    <button class="timer-btn end" id="endSession">
+                                        <i class="fas fa-flag-checkered"></i> End Session
+                                    </button>
+                                    <button class="timer-btn focus" id="focusMode">
+                                        <i class="fas fa-eye"></i> Focus Mode
+                                    </button>
+                                </div>
+                                
+                                <div class="card">
+                                    <h3>Select Subject</h3>
+                                    <div class="subject-selector">
+                                        <div class="subject-card active" data-subject="computer-science">
+                                            <div class="subject-icon">
+                                                <i class="fas fa-code"></i>
+                                            </div>
+                                            <span>Computer Science</span>
+                                        </div>
+                                        <div class="subject-card" data-subject="mathematics">
+                                            <div class="subject-icon">
+                                                <i class="fas fa-calculator"></i>
+                                            </div>
+                                            <span>Mathematics</span>
+                                        </div>
+                                        <div class="subject-card" data-subject="physics">
+                                            <div class="subject-icon">
+                                                <i class="fas fa-atom"></i>
+                                            </div>
+                                            <span>Physics</span>
+                                        </div>
+                                        <div class="subject-card" data-subject="chemistry">
+                                            <div class="subject-icon">
+                                                <i class="fas fa-flask"></i>
+                                            </div>
+                                            <span>Chemistry</span>
+                                        </div>
+                                        <div class="subject-card" data-subject="biology">
+                                            <div class="subject-icon">
+                                                <i class="fas fa-dna"></i>
+                                            </div>
+                                            <span>Biology</span>
+                                        </div>
+                                        <div class="subject-card" data-subject="english">
+                                            <div class="subject-icon">
+                                                <i class="fas fa-book"></i>
+                                            </div>
+                                            <span>English</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="card">
+                                    <h3>Manual Session Entry</h3>
+                                    <div class="manual-session-form">
+                                        <div class="input-group">
+                                            <label class="input-label">Subject</label>
+                                            <select class="input-field">
+                                                <option>Computer Science</option>
+                                                <option>Mathematics</option>
+                                                <option>Physics</option>
+                                                <option>Chemistry</option>
+                                                <option>Biology</option>
+                                                <option>English</option>
+                                            </select>
+                                        </div>
+                                        <div class="input-group">
+                                            <label class="input-label">Duration (minutes)</label>
+                                            <input type="number" class="input-field" placeholder="e.g., 45">
+                                        </div>
+                                        <div class="input-group">
+                                            <label class="input-label">Date</label>
+                                            <input type="date" class="input-field">
+                                        </div>
+                                        <div class="input-group">
+                                            <label class="input-label">&nbsp;</label>
+                                            <button class="button button-secondary">
+                                                <i class="fas fa-plus"></i> Add Session
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Groups Page -->
+                    <div class="page" id="groups">
+                        <div class="section">
+                            <div class="section-title">
+                                <span><i class="fas fa-users"></i> Study Groups</span>
+                                <button class="button" id="createGroupBtn">
+                                    <i class="fas fa-plus"></i> Create Group
+                                </button>
+                            </div>
+                            
+                            <div class="join-group-section">
+                                <h3>Join a Group</h3>
+                                <div class="join-group-form">
+                                    <div class="input-group" style="flex: 1;">
+                                        <input type="text" class="input-field" placeholder="Enter group code">
+                                    </div>
+                                    <button class="button">
+                                        <i class="fas fa-sign-in-alt"></i> Join
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="card">
+                                <h3>Your Study Groups</h3>
+                                <div class="groups-list">
+                                    <div class="group-item active">
+                                        <div class="group-icon">
+                                            <i class="fas fa-code"></i>
+                                        </div>
+                                        <div class="group-details">
+                                            <div class="group-name">Computer Science</div>
+                                            <div class="group-code">CS2023</div>
+                                            <div class="study-session-info">
+                                                <span class="study-time">2h 15m</span> studied today
+                                            </div>
+                                        </div>
+                                        <div class="group-status studying">
+                                            Studying
+                                        </div>
+                                    </div>
+                                    <div class="group-item">
+                                        <div class="group-icon">
+                                            <i class="fas fa-calculator"></i>
+                                        </div>
+                                        <div class="group-details">
+                                            <div class="group-name">Mathematics</div>
+                                            <div class="group-code">MATH101</div>
+                                            <div class="study-session-info">
+                                                <span class="study-time">1h 30m</span> studied today
+                                            </div>
+                                        </div>
+                                        <div class="group-status break">
+                                            Break
+                                        </div>
+                                    </div>
+                                    <div class="group-item">
+                                        <div class="group-icon">
+                                            <i class="fas fa-flask"></i>
+                                        </div>
+                                        <div class="group-details">
+                                            <div class="group-name">Chemistry</div>
+                                            <div class="group-code">CHEM203</div>
+                                            <div class="study-session-info">
+                                                <span class="study-time">45m</span> studied today
+                                            </div>
+                                        </div>
+                                        <div class="group-status studying">
+                                            Studying
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="card">
+                                <h3>Public Groups</h3>
+                                <div class="public-groups-grid">
+                                    <div class="public-group-card">
+                                        <div class="public-group-header">
+                                            <div class="public-group-icon">
+                                                <i class="fas fa-history"></i>
+                                            </div>
+                                            <div class="public-group-info">
+                                                <div class="public-group-name">History Studies</div>
+                                                <div class="public-group-members">24 members</div>
+                                            </div>
+                                        </div>
+                                        <p>Group for history enthusiasts and students</p>
+                                        <div class="button-group" style="margin-top: 12px;">
+                                            <button class="button button-secondary" style="flex: 1;">
+                                                <i class="fas fa-eye"></i> View
+                                            </button>
+                                            <button class="button" style="flex: 1;">
+                                                <i class="fas fa-sign-in-alt"></i> Join
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="public-group-card">
+                                        <div class="public-group-header">
+                                            <div class="public-group-icon">
+                                                <i class="fas fa-language"></i>
+                                            </div>
+                                            <div class="public-group-info">
+                                                <div class="public-group-name">Language Learning</div>
+                                                <div class="public-group-members">42 members</div>
+                                            </div>
+                                        </div>
+                                        <p>Practice and learn new languages together</p>
+                                        <div class="button-group" style="margin-top: 12px;">
+                                            <button class="button button-secondary" style="flex: 1;">
+                                                <i class="fas fa-eye"></i> View
+                                            </button>
+                                            <button class="button" style="flex: 1;">
+                                                <i class="fas fa-sign-in-alt"></i> Join
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="public-group-card">
+                                        <div class="public-group-header">
+                                            <div class="public-group-icon">
+                                                <i class="fas fa-music"></i>
+                                            </div>
+                                            <div class="public-group-info">
+                                                <div class="public-group-name">Music Theory</div>
+                                                <div class="public-group-members">18 members</div>
+                                            </div>
+                                        </div>
+                                        <p>Study music theory and composition</p>
+                                        <div class="button-group" style="margin-top: 12px;">
+                                            <button class="button button-secondary" style="flex: 1;">
+                                                <i class="fas fa-eye"></i> View
+                                            </button>
+                                            <button class="button" style="flex: 1;">
+                                                <i class="fas fa-sign-in-alt"></i> Join
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Statistics Page -->
+                    <div class="page" id="stats">
+                        <div class="section">
+                            <div class="section-title">
+                                <span><i class="fas fa-chart-bar"></i> Statistics</span>
+                            </div>
+                            
+                            <div class="stats-grid">
+                                <div class="stat-card">
+                                    <div class="stat-value">4h 30m</div>
+                                    <div class="stat-label">Today's Study Time</div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-value">28h 15m</div>
+                                    <div class="stat-label">This Week</div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-value">112h 40m</div>
+                                    <div class="stat-label">This Month</div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-value">84%</div>
+                                    <div class="stat-label">Goal Completion</div>
+                                </div>
+                            </div>
+                            
+                            <div class="card">
+                                <div class="progress-header">
+                                    <div class="progress-title">Daily Study Progress</div>
+                                    <div class="progress-date">September 2023</div>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: 75%"></div>
+                                </div>
+                                <div class="progress-info">
+                                    <span>3h 22m / 4h 30m</span>
+                                    <span class="progress-percentage">75%</span>
+                                </div>
+                            </div>
+                            
+                            <div class="card">
+                                <div class="subject-breakdown-header">
+                                    <div class="subject-breakdown-title">Subject Breakdown</div>
+                                    <div class="subject-breakdown-date">This Week</div>
+                                </div>
+                                <div class="subject-breakdown">
+                                    <div class="subject-item">
+                                        <span class="subject-name">Computer Science</span>
+                                        <span class="subject-time">12h 30m</span>
+                                    </div>
+                                    <div class="subject-item">
+                                        <span class="subject-name">Mathematics</span>
+                                        <span class="subject-time">8h 45m</span>
+                                    </div>
+                                    <div class="subject-item">
+                                        <span class="subject-name">Chemistry</span>
+                                        <span class="subject-time">5h 20m</span>
+                                    </div>
+                                    <div class="subject-item">
+                                        <span class="subject-name">Physics</span>
+                                        <span class="subject-time">1h 35m</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="card">
+                                <h3>Study Streak</h3>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: 100%"></div>
+                                </div>
+                                <div class="progress-info">
+                                    <span>14 days in a row</span>
+                                    <span class="progress-percentage">100%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Calendar Page -->
+                    <div class="page" id="calendar">
+                        <div class="section">
+                            <div class="section-title">
+                                <span><i class="fas fa-calendar-alt"></i> Calendar</span>
+                            </div>
+                            
+                            <div class="card">
+                                <h3>September 2023</h3>
+                                <table class="calendar">
+                                    <thead>
+                                        <tr>
+                                            <th>Sun</th>
+                                            <th>Mon</th>
+                                            <th>Tue</th>
+                                            <th>Wed</th>
+                                            <th>Thu</th>
+                                            <th>Fri</th>
+                                            <th>Sat</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td class="calendar-day">27</td>
+                                            <td class="calendar-day">28</td>
+                                            <td class="calendar-day">29</td>
+                                            <td class="calendar-day">30</td>
+                                            <td class="calendar-day">31</td>
+                                            <td class="calendar-day">1</td>
+                                            <td class="calendar-day">2</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="calendar-day">3</td>
+                                            <td class="calendar-day">4</td>
+                                            <td class="calendar-day">5</td>
+                                            <td class="calendar-day active">6<span class="study-dot high"></span></td>
+                                            <td class="calendar-day">7<span class="study-dot medium"></span></td>
+                                            <td class="calendar-day">8<span class="study-dot low"></span></td>
+                                            <td class="calendar-day">9</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="calendar-day">10</td>
+                                            <td class="calendar-day">11<span class="study-dot medium"></span></td>
+                                            <td class="calendar-day">12<span class="study-dot high"></span></td>
+                                            <td class="calendar-day">13<span class="study-dot high"></span></td>
+                                            <td class="calendar-day">14<span class="study-dot medium"></span></td>
+                                            <td class="calendar-day">15<span class="study-dot low"></span></td>
+                                            <td class="calendar-day">16</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="calendar-day">17</td>
+                                            <td class="calendar-day">18<span class="study-dot high"></span></td>
+                                            <td class="calendar-day">19<span class="study-dot high"></span></td>
+                                            <td class="calendar-day">20<span class="study-dot medium"></span></td>
+                                            <td class="calendar-day">21<span class="study-dot medium"></span></td>
+                                            <td class="calendar-day">22<span class="study-dot low"></span></td>
+                                            <td class="calendar-day">23</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="calendar-day">24</td>
+                                            <td class="calendar-day">25<span class="study-dot high"></span></td>
+                                            <td class="calendar-day">26<span class="study-dot high"></span></td>
+                                            <td class="calendar-day">27<span class="study-dot medium"></span></td>
+                                            <td class="calendar-day">28<span class="study-dot medium"></span></td>
+                                            <td class="calendar-day">29<span class="study-dot low"></span></td>
+                                            <td class="calendar-day">30</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <div class="card">
+                                <h3>Study Sessions This Week</h3>
+                                <div class="activity-feed">
+                                    <div class="activity-item">
+                                        <div class="activity-icon" style="background: var(--primary);">
+                                            <i class="fas fa-code"></i>
+                                        </div>
+                                        <div class="activity-content">
+                                            <div class="activity-text">Computer Science - 2h 15m</div>
+                                            <div class="activity-time">Monday, September 25</div>
+                                        </div>
+                                    </div>
+                                    <div class="activity-item">
+                                        <div class="activity-icon" style="background: var(--secondary);">
+                                            <i class="fas fa-calculator"></i>
+                                        </div>
+                                        <div class="activity-content">
+                                            <div class="activity-text">Mathematics - 1h 30m</div>
+                                            <div class="activity-time">Monday, September 25</div>
+                                        </div>
+                                    </div>
+                                    <div class="activity-item">
+                                        <div class="activity-icon" style="background: var(--success);">
+                                            <i class="fas fa-flask"></i>
+                                        </div>
+                                        <div class="activity-content">
+                                            <div class="activity-text">Chemistry - 45m</div>
+                                            <div class="activity-time">Sunday, September 24</div>
+                                        </div>
+                                    </div>
+                                    <div class="activity-item">
+                                        <div class="activity-icon" style="background: var(--warning);">
+                                            <i class="fas fa-code"></i>
+                                        </div>
+                                        <div class="activity-content">
+                                            <div class="activity-text">Computer Science - 1h 15m</div>
+                                            <div class="activity-time">Saturday, September 23</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Settings Page -->
+                    <div class="page" id="settings">
+                        <div class="section">
+                            <div class="section-title">
+                                <span><i class="fas fa-cog"></i> Settings</span>
+                            </div>
+                            
+                            <div class="settings-section">
+                                <div class="settings-section-title">
+                                    <i class="fas fa-bullseye"></i>
+                                    <span>Study Goals</span>
+                                </div>
+                                <div class="card">
+                                    <div class="input-group">
+                                        <label class="input-label">Daily Study Goal</label>
+                                        <div class="goal-input-container">
+                                            <input type="number" class="goal-input" value="4">
+                                            <span class="goal-unit">hours</span>
+                                        </div>
+                                    </div>
+                                    <div class="input-group">
+                                        <label class="input-label">Weekly Study Goal</label>
+                                        <div class="goal-input-container">
+                                            <input type="number" class="goal-input" value="25">
+                                            <span class="goal-unit">hours</span>
+                                        </div>
+                                    </div>
+                                    <div class="input-group">
+                                        <label class="input-label">Enable Study Reminders</label>
+                                        <label class="switch">
+                                            <input type="checkbox" checked>
+                                            <span class="slider"></span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="settings-section">
+                                <div class="settings-section-title">
+                                    <i class="fas fa-palette"></i>
+                                    <span>Appearance</span>
+                                </div>
+                                <div class="card">
+                                    <div class="input-group">
+                                        <label class="input-label">Theme</label>
+                                        <div class="button-group">
+                                            <button class="button active">Light</button>
+                                            <button class="button button-secondary">Dark</button>
+                                            <button class="button button-secondary">Auto</button>
+                                        </div>
+                                    </div>
+                                    <div class="input-group">
+                                        <label class="input-label">Background</label>
+                                        <div class="gradient-options">
+                                            <div class="gradient-option active" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                                                <div class="gradient-name">Default</div>
+                                            </div>
+                                            <div class="gradient-option" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                                                <div class="gradient-name">Sunset</div>
+                                            </div>
+                                            <div class="gradient-option" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                                                <div class="gradient-name">Ocean</div>
+                                            </div>
+                                            <div class="gradient-option" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+                                                <div class="gradient-name">Mint</div>
+                                            </div>
+                                            <div class="gradient-option" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
+                                                <div class="gradient-name">Peach</div>
+                                            </div>
+                                            <div class="gradient-option" style="background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);">
+                                                <div class="gradient-name">Cotton Candy</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="settings-section">
+                                <div class="settings-section-title">
+                                    <i class="fas fa-bell"></i>
+                                    <span>Notifications</span>
+                                </div>
+                                <div class="card">
+                                    <div class="input-group">
+                                        <label class="input-label">Study Session Notifications</label>
+                                        <label class="switch">
+                                            <input type="checkbox" checked>
+                                            <span class="slider"></span>
+                                        </label>
+                                    </div>
+                                    <div class="input-group">
+                                        <label class="input-label">Group Message Notifications</label>
+                                        <label class="switch">
+                                            <input type="checkbox" checked>
+                                            <span class="slider"></span>
+                                        </label>
+                                    </div>
+                                    <div class="input-group">
+                                        <label class="input-label">Goal Achievement Notifications</label>
+                                        <label class="switch">
+                                            <input type="checkbox" checked>
+                                            <span class="slider"></span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="settings-section">
+                                <div class="settings-section-title">
+                                    <i class="fas fa-shield-alt"></i>
+                                    <span>Privacy & Security</span>
+                                </div>
+                                <div class="card">
+                                    <div class="input-group">
+                                        <label class="input-label">Make Profile Public</label>
+                                        <label class="switch">
+                                            <input type="checkbox">
+                                            <span class="slider"></span>
+                                        </label>
+                                    </div>
+                                    <div class="input-group">
+                                        <label class="input-label">Allow Study Session Sharing</label>
+                                        <label class="switch">
+                                            <input type="checkbox" checked>
+                                            <span class="slider"></span>
+                                        </label>
+                                    </div>
+                                    <div class="input-group">
+                                        <label class="input-label">Show Online Status</label>
+                                        <label class="switch">
+                                            <input type="checkbox" checked>
+                                            <span class="slider"></span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="members-sidebar">
+                <div class="members-header">
+                    <i class="fas fa-users"></i>
+                    <span>Group Members</span>
+                </div>
+                <div class="members-list">
+                    <div class="member-item">
+                        <div class="member-avatar">JS</div>
+                        <div class="member-details">
+                            <div class="member-name">John Smith</div>
+                            <div class="member-status studying">
+                                <span class="status-indicator status-studying"></span>
+                                Studying
+                            </div>
+                        </div>
+                    </div>
+                    <div class="member-item">
+                        <div class="member-avatar">SA</div>
+                        <div class="member-details">
+                            <div class="member-name">Sarah Anderson</div>
+                            <div class="member-status studying">
+                                <span class="status-indicator status-studying"></span>
+                                Studying
+                            </div>
+                        </div>
+                    </div>
+                    <div class="member-item">
+                        <div class="member-avatar">MJ</div>
+                        <div class="member-details">
+                            <div class="member-name">Mike Johnson</div>
+                            <div class="member-status break">
+                                <span class="status-indicator status-break"></span>
+                                On Break
+                            </div>
+                        </div>
+                    </div>
+                    <div class="member-item">
+                        <div class="member-avatar">EC</div>
+                        <div class="member-details">
+                            <div class="member-name">Emily Chen</div>
+                            <div class="member-status studying">
+                                <span class="status-indicator status-studying"></span>
+                                Studying
+                            </div>
+                        </div>
+                    </div>
+                    <div class="member-item">
+                        <div class="member-avatar">DR</div>
+                        <div class="member-details">
+                            <div class="member-name">David Rodriguez</div>
+                            <div class="member-status online">
+                                <span class="status-indicator status-online"></span>
+                                Online
+                            </div>
+                        </div>
+                    </div>
+                    <div class="member-item">
+                        <div class="member-avatar">AK</div>
+                        <div class="member-details">
+                            <div class="member-name">Alex Kim</div>
+                            <div class="member-status offline">
+                                <span class="status-indicator status-offline"></span>
+                                Offline
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="group-stats">
+                    <div class="group-stat">
+                        <div class="group-stat-value">6</div>
+                        <div class="group-stat-label">Members</div>
+                    </div>
+                    <div class="group-stat">
+                        <div class="group-stat-value">4</div>
+                        <div class="group-stat-label">Studying</div>
+                    </div>
+                    <div class="group-stat">
+                        <div class="group-stat-value">2h 15m</div>
+                        <div class="group-stat-label">Avg. Time</div>
+                    </div>
+                    <div class="group-stat">
+                        <div class="group-stat-value">84%</div>
+                        <div class="group-stat-label">Active</div>
+                    </div>
+                </div>
+                
+                <div class="chat-container">
+                    <div class="chat-header">
+                        <div class="chat-title">Group Chat</div>
+                        <div class="chat-info">
+                            <span class="live-indicator"></span>
+                            Live
+                        </div>
+                    </div>
+                    <div class="chat-messages">
+                        <div class="message own">
+                            <div class="message-sender">You</div>
+                            <div class="message-text">Has anyone finished the algorithm assignment?</div>
+                            <div class="message-time">10:24 AM</div>
+                        </div>
+                        <div class="message other">
+                            <div class="message-sender">Sarah Anderson</div>
+                            <div class="message-text">I'm still working on question 3. It's tricky!</div>
+                            <div class="message-time">10:26 AM</div>
+                        </div>
+                        <div class="message other">
+                            <div class="message-sender">Mike Johnson</div>
+                            <div class="message-text">I finished it yesterday. Happy to help if anyone needs it.</div>
+                            <div class="message-time">10:28 AM</div>
+                        </div>
+                        <div class="message own">
+                            <div class="message-sender">You</div>
+                            <div class="message-text">Thanks Mike! I might take you up on that after I give it another try.</div>
+                            <div class="message-time">10:30 AM</div>
+                        </div>
+                    </div>
+                    <div class="chat-input">
+                        <input type="text" class="chat-input-field" placeholder="Type a message...">
+                        <button class="send-button">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Focus Mode Overlay -->
+    <div class="focus-overlay" id="focusOverlay">
+        <div class="focus-timer" id="focusTimer">00:00:00</div>
+        <div class="focus-subject" id="focusSubject">Computer Science</div>
+        <button class="timer-btn stop" id="exitFocusMode">
+            <i class="fas fa-times"></i> Exit Focus Mode
+        </button>
+    </div>
+
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyC4wGDrMTYkD5Si3JkxQsf9BwHwS2X6Y5E",
+            authDomain: "studyflow-app.firebaseapp.com",
+            projectId: "studyflow-app",
+            storageBucket: "studyflow-app.appspot.com",
+            messagingSenderId: "123456789012",
+            appId: "1:123456789012:web:abcdef123456"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // DOM Elements
+        const navItems = document.querySelectorAll('.nav-item');
+        const pages = document.querySelectorAll('.page');
+        const themeToggle = document.getElementById('themeToggle');
+        const timerDisplay = document.getElementById('timerDisplay');
+        const dashboardTimer = document.getElementById('dashboardTimer');
+        const startTimerBtn = document.getElementById('startTimer');
+        const stopTimerBtn = document.getElementById('stopTimer');
+        const resetTimerBtn = document.getElementById('resetTimer');
+        const endSessionBtn = document.getElementById('endSession');
+        const focusModeBtn = document.getElementById('focusMode');
+        const focusOverlay = document.getElementById('focusOverlay');
+        const focusTimer = document.getElementById('focusTimer');
+        const focusSubject = document.getElementById('focusSubject');
+        const exitFocusModeBtn = document.getElementById('exitFocusMode');
+        const subjectCards = document.querySelectorAll('.subject-card');
+        
+        // Timer variables - FIXED: Using timestamps to track elapsed time
+        let timerInterval;
+        let isTimerRunning = false;
+        let startTime = 0;
+        let elapsedTime = 0;
+        let lastUpdateTime = 0;
+
+        // Format time for display
+        function formatTime(ms) {
+            const totalSeconds = Math.floor(ms / 1000);
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+            
+            return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        // Update timer display
+        function updateTimerDisplay() {
+            const currentTime = Date.now();
+            const timeDiff = currentTime - startTime + elapsedTime;
+            timerDisplay.textContent = formatTime(timeDiff);
+            dashboardTimer.textContent = formatTime(timeDiff);
+            
+            if (focusOverlay.style.display === 'flex') {
+                focusTimer.textContent = formatTime(timeDiff);
+            }
+        }
+
+        // Start timer - FIXED: Using timestamp-based approach
+        function startTimer() {
+            if (!isTimerRunning) {
+                isTimerRunning = true;
+                startTime = Date.now() - elapsedTime;
+                lastUpdateTime = Date.now();
+                
+                // Use requestAnimationFrame for more accurate timing
+                function updateTimer() {
+                    if (isTimerRunning) {
+                        updateTimerDisplay();
+                        requestAnimationFrame(updateTimer);
+                    }
+                }
+                
+                updateTimer();
+                
+                startTimerBtn.disabled = true;
+                stopTimerBtn.disabled = false;
+            }
+        }
+
+        // Stop timer
+        function stopTimer() {
+            if (isTimerRunning) {
+                isTimerRunning = false;
+                elapsedTime += Date.now() - startTime;
+                
+                startTimerBtn.disabled = false;
+                stopTimerBtn.disabled = true;
+            }
+        }
+
+        // Reset timer
+        function resetTimer() {
+            isTimerRunning = false;
+            startTime = 0;
+            elapsedTime = 0;
+            lastUpdateTime = 0;
+            
+            timerDisplay.textContent = '00:00:00';
+            dashboardTimer.textContent = '00:00:00';
+            focusTimer.textContent = '00:00:00';
+            
+            startTimerBtn.disabled = false;
+            stopTimerBtn.disabled = true;
+        }
+
+        // End session
+        function endSession() {
+            if (elapsedTime > 0 || isTimerRunning) {
+                const confirmEnd = confirm('Are you sure you want to end this study session?');
+                if (confirmEnd) {
+                    // Save session to database
+                    const sessionData = {
+                        subject: document.querySelector('.subject-card.active').dataset.subject,
+                        duration: isTimerRunning ? 
+                            (Date.now() - startTime + elapsedTime) : elapsedTime,
+                        date: new Date().toISOString()
+                    };
+                    
+                    // Here you would save to Firestore
+                    console.log('Session saved:', sessionData);
+                    
+                    // Reset timer
+                    resetTimer();
+                    
+                    // Show confirmation
+                    alert('Study session saved successfully!');
+                }
+            } else {
+                alert('No active study session to end.');
+            }
+        }
+
+        // Enter focus mode
+        function enterFocusMode() {
+            if (isTimerRunning || elapsedTime > 0) {
+                focusOverlay.style.display = 'flex';
+                focusSubject.textContent = document.querySelector('.subject-card.active').textContent.trim();
+                document.body.style.overflow = 'hidden';
+            } else {
+                alert('Please start a study session first.');
+            }
+        }
+
+        // Exit focus mode
+        function exitFocusMode() {
+            focusOverlay.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+
+        // Navigation
+        navItems.forEach(item => {
+            item.addEventListener('click', () => {
+                const pageId = item.getAttribute('data-page');
+                
+                // Update active nav item
+                navItems.forEach(nav => nav.classList.remove('active'));
+                item.classList.add('active');
+                
+                // Show corresponding page
+                pages.forEach(page => {
+                    page.classList.remove('active');
+                    if (page.id === pageId) {
+                        page.classList.add('active');
+                    }
+                });
+            });
+        });
+
+        // Theme toggle
+        themeToggle.addEventListener('click', () => {
+            document.body.setAttribute('data-theme', 
+                document.body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+            
+            const icon = themeToggle.querySelector('i');
+            if (document.body.getAttribute('data-theme') === 'dark') {
+                icon.className = 'fas fa-sun';
+            } else {
+                icon.className = 'fas fa-moon';
+            }
+        });
+
+        // Subject selection
+        subjectCards.forEach(card => {
+            card.addEventListener('click', () => {
+                subjectCards.forEach(c => c.classList.remove('active'));
+                card.classList.add('active');
+            });
+        });
+
+        // Timer event listeners
+        startTimerBtn.addEventListener('click', startTimer);
+        stopTimerBtn.addEventListener('click', stopTimer);
+        resetTimerBtn.addEventListener('click', resetTimer);
+        endSessionBtn.addEventListener('click', endSession);
+        focusModeBtn.addEventListener('click', enterFocusMode);
+        exitFocusModeBtn.addEventListener('click', exitFocusMode);
+
+        // Initialize app
+        function initApp() {
+            // Set initial theme
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                document.body.setAttribute('data-theme', 'dark');
+                themeToggle.querySelector('i').className = 'fas fa-sun';
+            }
+            
+            // Initialize timer display
+            resetTimer();
+        }
+
+        // Initialize the application
+        initApp();
+    </script>
+</body>
+</html>
